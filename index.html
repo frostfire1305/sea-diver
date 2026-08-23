@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Thợ Lặn Đại Dương - Deep Sea Diver</title>
+    <!-- Google Fonts cho phong cách Cartoon -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="game-wrapper">
+        <!-- Khung Game chính -->
+        <div class="game-container" id="gameContainer">
+            
+            <!-- Canvas vẽ trò chơi -->
+            <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+            <!-- Giao diện HUD trên màn hình chơi -->
+            <div class="hud" id="hud">
+                <div class="hud-item score-box">
+                    <span class="hud-icon">⭐</span>
+                    <span id="starCount">0</span>
+                </div>
+                <div class="hud-item depth-box">
+                    <span class="hud-icon">⚓</span>
+                    <span id="depthCount">0</span><small>m</small>
+                </div>
+                <div class="hud-controls">
+                    <button id="btnSound" class="hud-btn" title="Bật/Tắt Âm Thanh">🔊</button>
+                    <button id="btnPause" class="hud-btn" title="Tạm Dừng">⏸️</button>
+                </div>
+            </div>
+
+            <!-- Màn hình Bắt Đầu (Start Screen) -->
+            <div class="overlay active" id="startScreen">
+                <div class="modal-card">
+                    <div class="game-logo">
+                        <div class="logo-badge">🌊 THẾ GIỚI BIỂN 🌊</div>
+                        <h1 class="logo-title">THỢ LẶN<br><span>ĐẠI DƯƠNG</span></h1>
+                        <div class="diver-avatar">🤿</div>
+                    </div>
+                    
+                    <div class="high-score-preview">
+                        <span>🏆 Kỷ lục: <strong id="startHighScore">0</strong> ⭐</span>
+                        <span>⚓ Độ sâu: <strong id="startMaxDepth">0</strong> m</span>
+                    </div>
+
+                    <p class="game-instructions">
+                        Né các <strong>tảng đá</strong> ngầm &amp; Thu thập <strong>ngôi sao vàng</strong>!
+                    </p>
+
+                    <button id="btnPlay" class="cartoon-btn btn-primary">
+                        <span>BẮT ĐẦU LẶN</span> 🚀
+                    </button>
+
+                    <div class="controls-guide">
+                        <span>Phím ⬅️ ➡️ hoặc A / D để di chuyển</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Màn hình Tạm Dừng (Pause Screen) -->
+            <div class="overlay" id="pauseScreen">
+                <div class="modal-card">
+                    <h2 class="modal-title">TẠM DỪNG</h2>
+                    <div class="pause-icon">⏸️</div>
+                    <button id="btnResume" class="cartoon-btn btn-primary">
+                        <span>TIẾP TỤC</span> ▶️
+                    </button>
+                    <button id="btnRestartFromPause" class="cartoon-btn btn-secondary">
+                        <span>CHƠI LẠI</span> 🔄
+                    </button>
+                </div>
+            </div>
+
+            <!-- Màn hình Kết Thúc (Game Over Screen) -->
+            <div class="overlay" id="gameOverScreen">
+                <div class="modal-card">
+                    <div class="game-over-header">
+                        <span class="game-over-icon">💥</span>
+                        <h2 class="modal-title game-over-title">HẾT DƯỠNG KHÍ!</h2>
+                    </div>
+
+                    <div class="result-stats">
+                        <div class="stat-row highlight">
+                            <span>⭐ Ngôi sao:</span>
+                            <strong id="finalStars">0</strong>
+                        </div>
+                        <div class="stat-row">
+                            <span>⚓ Độ sâu đạt được:</span>
+                            <strong id="finalDepth">0 m</strong>
+                        </div>
+                        <div class="stat-row">
+                            <span>💯 Tổng điểm:</span>
+                            <strong id="finalScore">0</strong>
+                        </div>
+                        <div class="stat-row best-record" id="newBestBadge">
+                            <span>🎉 KỶ LỤC MỚI! 🎉</span>
+                        </div>
+                    </div>
+
+                    <button id="btnRestart" class="cartoon-btn btn-primary">
+                        <span>LẶN LẠI</span> 🔄
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2 Nút điều khiển Trái / Phải cảm ứng trên màn hình -->
+            <div class="touch-controls" id="touchControls">
+                <button id="btnLeft" class="control-btn" aria-label="Sang trái">
+                    <span class="arrow-icon">◀</span>
+                    <span class="control-text">TRÁI</span>
+                </button>
+                <button id="btnRight" class="control-btn" aria-label="Sang phải">
+                    <span class="control-text">PHẢI</span>
+                    <span class="arrow-icon">▶</span>
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
