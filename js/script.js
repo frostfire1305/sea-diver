@@ -200,7 +200,7 @@
     },
     {
       id: "pink",
-      name: "Thợ Lặn\nHồng",
+      name: "Valentine",
       emoji: "🩷",
       rarity: "common",
       rarityName: "Thường",
@@ -213,17 +213,17 @@
       },
     },
     {
-      id: "star",
-      name: "Thợ Lặn\nSao",
-      emoji: "⭐",
-      rarity: "rare",
-      rarityName: "Hiếm",
+      id: "legend",
+      name: "Thiên thần",
+      emoji: "🌟",
+      rarity: "common",
+      rarityName: "Thường",
       colors: {
-        suit: "#ffd32a",
-        helmet: "#fff200",
-        visor: "#ffda00",
-        tank: "#ffa801",
-        flipper: "#f9ca24",
+        suit: "#e17055",
+        helmet: "#fdcb6e",
+        visor: "#81ecec",
+        tank: "#2d3436",
+        flipper: "#d63031",
       },
     },
     {
@@ -242,7 +242,7 @@
     },
     {
       id: "dragon",
-      name: "Thợ Lặn\nRồng",
+      name: "Long thần",
       emoji: "🐉",
       rarity: "epic",
       rarityName: "Sử Thi",
@@ -255,29 +255,30 @@
       },
     },
     {
-      id: "legend",
-      name: "Huyền\nThoại",
-      emoji: "🌟",
+      id: "star",
+      name: "Tổ Quốc yêu bạn",
+      emoji: "⭐",
       rarity: "legend",
-      rarityName: "Huyền Thoại",
+      rarityName: "Thần thoại",
       colors: {
-        suit: "#e17055",
-        helmet: "#fdcb6e",
-        visor: "#81ecec",
-        tank: "#2d3436",
-        flipper: "#d63031",
+        suit: "#880303",
+        helmet: "#f92424",
+        visor: "#ff8c00",
+        tank: "#ffa801",
+        flipper: "#f92424",
       },
     },
+    
   ];
 
   // Xác suất gacha (tổng = 100)
   const GACHA_POOL = [
     { id: "default", weight: 40 },
     { id: "pink", weight: 25 },
-    { id: "star", weight: 15 },
+    { id: "legend", weight: 15 },
     { id: "king", weight: 10 },
     { id: "dragon", weight: 7 },
-    { id: "legend", weight: 3 },
+    { id: "star", weight: 3 },
   ];
 
   class GachaSystem {
@@ -649,6 +650,320 @@
       ctx.arc(0, 12, 11, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
+
+      // === PHỤ KIỆN ĐẶC TRƯNG TỪNG SKIN ===
+
+      // --- DRAGON: Sừng + Vây lưng + Đuôi rồng ---
+      if (skin.id === "dragon") {
+        ctx.strokeStyle = "#130f40";
+        ctx.lineWidth = 2;
+
+        // Vây lưng (dorsal fin) — nhô ra từ đỉnh bình khí
+        ctx.fillStyle = "#6c5ce7";
+        ctx.beginPath();
+        ctx.moveTo(-5, -14);
+        ctx.quadraticCurveTo(0, -34, 5, -14);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Sừng trái - tia sét bo cạnh
+        ctx.fillStyle = "#a29bfe";
+        ctx.beginPath();
+
+        ctx.moveTo(-6, -2);
+        ctx.lineTo(-15, -18);
+
+        // Bo góc 1
+        ctx.quadraticCurveTo(-15, -19, -14, -18);
+        ctx.lineTo(-10, -16);
+
+        // Bo góc 2
+        ctx.quadraticCurveTo(-9, -16, -10, -17);
+        ctx.lineTo(-13, -26);
+
+        // Đầu tia sét
+        ctx.quadraticCurveTo(-13, -27, -12, -26);
+        ctx.lineTo(-3, -13);
+
+        // Bo góc 3
+        ctx.quadraticCurveTo(-2, -12, -4, -13);
+        ctx.lineTo(-8, -14);
+
+        // Bo góc 4
+        ctx.quadraticCurveTo(-9, -14, -8, -13);
+
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Sừng phải - tia sét bo cạnh
+        ctx.beginPath();
+
+        ctx.moveTo(6, -2);
+        ctx.lineTo(15, -18);
+
+        ctx.quadraticCurveTo(15, -19, 14, -18);
+        ctx.lineTo(10, -16);
+
+        ctx.quadraticCurveTo(9, -16, 10, -17);
+        ctx.lineTo(13, -26);
+
+        ctx.quadraticCurveTo(13, -27, 12, -26);
+        ctx.lineTo(3, -13);
+
+        ctx.quadraticCurveTo(2, -12, 4, -13);
+        ctx.lineTo(8, -14);
+
+        ctx.quadraticCurveTo(9, -14, 8, -13);
+
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Đuôi rồng (tail) — uốn cong theo flipperAngle
+        const tailWag = Math.sin(this.flipperAngle + 1) * 6;
+        ctx.fillStyle = "#a29bfe";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(8, -28);
+        ctx.quadraticCurveTo(24 + tailWag, -38, 18 + tailWag, -46);
+        ctx.quadraticCurveTo(12 + tailWag, -52, 22 + tailWag, -50);
+        ctx.quadraticCurveTo(30 + tailWag, -48, 26 + tailWag, -42);
+        ctx.quadraticCurveTo(32 + tailWag, -34, 14, -28);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+
+      // --- KING: Vương miện + Áo choàng ---
+      if (skin.id === "king") {
+        ctx.strokeStyle = "#130f40";
+        ctx.lineWidth = 2;
+
+        // Áo choàng hoàng gia (cape) hai bên
+        ctx.fillStyle = "#0652dd";
+        ctx.globalAlpha = 0.85;
+        ctx.beginPath();
+        ctx.moveTo(-15, 8);
+        ctx.lineTo(-26, 14);
+        ctx.lineTo(-20, 22);
+        ctx.lineTo(-15, 18);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(15, 8);
+        ctx.lineTo(26, 14);
+        ctx.lineTo(20, 22);
+        ctx.lineTo(15, 18);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+
+        // Vương miện trên đỉnh mũ
+        ctx.fillStyle = "#ffd32a";
+        // Đế vương miện
+        ctx.beginPath();
+        ctx.rect(-12, -8, 24, 7);
+        ctx.fill();
+        ctx.stroke();
+        // 3 đỉnh nhọn - bo cạnh
+
+        // Đỉnh trái
+        ctx.beginPath();
+        ctx.moveTo(-12, -8);
+        ctx.lineTo(-8.5, -19);
+
+        ctx.quadraticCurveTo(-8, -21, -7.5, -19);
+
+        ctx.lineTo(-4, -8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Đỉnh giữa
+        ctx.beginPath();
+        ctx.moveTo(-2, -8);
+        ctx.lineTo(-0.7, -23);
+
+        ctx.quadraticCurveTo(0, -25, 0.7, -23);
+
+        ctx.lineTo(2, -8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Đỉnh phải
+        ctx.beginPath();
+        ctx.moveTo(4, -8);
+        ctx.lineTo(7.5, -19);
+
+        ctx.quadraticCurveTo(8, -21, 8.5, -19);
+
+        ctx.lineTo(12, -8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Đá quý trên vương miện
+        ctx.fillStyle = "#48dbfb";
+        ctx.beginPath();
+        ctx.arc(0, -10, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#ff4757";
+        ctx.beginPath();
+        ctx.arc(-8, -9, 2.5, 0, Math.PI * 2);
+        ctx.arc(8, -9, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // --- STAR: Hào quang ngôi sao xoay ---
+      if (skin.id === "star") {
+        const numRays = 8;
+        const outerR = 30;
+        const innerR = 18;
+        const baseAngle = (frameCount * 0.04) % (Math.PI * 2);
+        ctx.lineWidth = 1.5;
+
+        // Vòng sao xoay phía sau nhân vật
+        ctx.save();
+        ctx.globalAlpha = 0.55 + Math.sin(frameCount * 0.07) * 0.12;
+        ctx.fillStyle = "#fff200";
+        ctx.strokeStyle = "#ffa801";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let i = 0; i < numRays * 2; i++) {
+          const angle = baseAngle + (i * Math.PI) / numRays;
+          const r = i % 2 === 0 ? outerR : innerR;
+          const px = Math.cos(angle) * r;
+          const py = Math.sin(angle) * r;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // Ngôi sao nhỏ trên đỉnh đầu
+        ctx.fillStyle = "#fff200";
+        ctx.strokeStyle = "#ffa801";
+        ctx.lineWidth = 1.5;
+        ctx.save();
+        ctx.translate(0, -28);
+        ctx.rotate(baseAngle * 2);
+        ctx.beginPath();
+        for (let i = 0; i < 10; i++) {
+          const a = (i * Math.PI) / 5 - Math.PI / 2;
+          const r2 = i % 2 === 0 ? 8 : 4;
+          const px = Math.cos(a) * r2;
+          const py = Math.sin(a) * r2;
+          if (i === 0) ctx.moveTo(px, py);
+          else ctx.lineTo(px, py);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // --- LEGEND: Cánh thiên thần + Vòng hào quang ---
+      if (skin.id === "legend") {
+        ctx.strokeStyle = "#130f40";
+        ctx.lineWidth = 2;
+
+        // Vòng hào quang (halo) phía trên đầu
+        const haloAlpha = 0.7 + Math.sin(frameCount * 0.06) * 0.2;
+        ctx.save();
+        ctx.globalAlpha = haloAlpha;
+        ctx.strokeStyle = "#fdcb6e";
+        ctx.lineWidth = 3.5;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "#fdcb6e";
+        ctx.beginPath();
+        ctx.ellipse(0, -30, 14, 5, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        // Tia sáng xung quanh hào quang
+        ctx.save();
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = "#fdcb6e";
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 8; i++) {
+          const a = (i / 8) * Math.PI * 2 + frameCount * 0.03;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * 16, -30 + Math.sin(a) * 6);
+          ctx.lineTo(Math.cos(a) * 22, -30 + Math.sin(a) * 8);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        // Cánh thiên thần trái
+        const wingFlap = Math.sin(this.flipperAngle * 0.5) * 0.15;
+        ctx.save();
+        ctx.globalAlpha = 0.82;
+        ctx.fillStyle = "#ffffff";
+        ctx.strokeStyle = "#fdcb6e";
+        ctx.lineWidth = 2;
+
+        ctx.save();
+        ctx.translate(-16, 4);
+        ctx.rotate(-0.3 + wingFlap);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(-22, -8, -28, 4, -18, 14);
+        ctx.bezierCurveTo(-12, 18, -4, 14, 0, 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+
+        // Cánh thiên thần phải
+        ctx.save();
+        ctx.translate(16, 4);
+        ctx.rotate(0.3 - wingFlap);
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.bezierCurveTo(22, -8, 28, 4, 18, 14);
+        ctx.bezierCurveTo(12, 18, 4, 14, 0, 8);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+        ctx.restore();
+      }
+
+      // --- PINK: Nơ dễ thương trên đỉnh mũ ---
+      if (skin.id === "pink") {
+        ctx.strokeStyle = "#130f40";
+        ctx.lineWidth = 1.8;
+        ctx.fillStyle = "#e84393";
+        // Cánh nơ trái
+        ctx.beginPath();
+        ctx.moveTo(0, -6);
+        ctx.bezierCurveTo(-6, -18, -18, -16, -14, -8);
+        ctx.bezierCurveTo(-10, -2, -2, -4, 0, -6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // Cánh nơ phải
+        ctx.beginPath();
+        ctx.moveTo(0, -6);
+        ctx.bezierCurveTo(6, -18, 18, -16, 14, -8);
+        ctx.bezierCurveTo(10, -2, 2, -4, 0, -6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // Nút giữa nơ
+        ctx.fillStyle = "#fd79a8";
+        ctx.beginPath();
+        ctx.arc(0, -6, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
 
       // Aura cho skin huyền thoại/sử thi
       if (skin.rarity === "legend" || skin.rarity === "epic") {
