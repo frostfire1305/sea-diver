@@ -58,6 +58,10 @@
                         <span>BẮT ĐẦU LẶN</span> 🚀
                     </button>
 
+                    <button id="btnGachaFromStart" class="cartoon-btn btn-gacha">
+                        <span>GACHA SKIN</span> 🎰
+                    </button>
+
                     <div class="controls-guide">
                         <span>Phím ⬅️ ➡️ hoặc A / D để di chuyển</span>
                     </div>
@@ -107,6 +111,9 @@
                     <button id="btnRestart" class="cartoon-btn btn-primary">
                         <span>HỒI SINH</span> 🔄
                     </button>
+                    <button id="btnGachaFromOver" class="cartoon-btn btn-gacha">
+                        <span>GACHA SKIN</span> 🎰
+                    </button>
                 </div>
             </div>
 
@@ -120,6 +127,54 @@
                     <span class="control-text">PHẢI</span>
                     <span class="arrow-icon">▶</span>
                 </button>
+            </div>
+
+            <!-- Màn hình Gacha (Gacha Screen) -->
+            <div class="overlay" id="gachaScreen">
+                <div class="modal-card gacha-card">
+                    <div class="gacha-header">
+                        <h2 class="modal-title">🎰 GACHA BIỂN SÂU</h2>
+                        <div class="gacha-wallet">
+                            <span>⭐</span>
+                            <span id="gachaStarCount">0</span>
+                            <span class="wallet-label">sao</span>
+                        </div>
+                    </div>
+
+                    <!-- Khu vực hiển thị kết quả -->
+                    <div class="gacha-result-area" id="gachaResultArea">
+                        <div class="gacha-idle-art">🌊</div>
+                        <p class="gacha-idle-text">Quay để nhận skin mới!</p>
+                    </div>
+
+                    <!-- Nút quay -->
+                    <div class="gacha-pull-btns">
+                        <button id="btnPull1" class="cartoon-btn btn-pull">
+                            <span>x1 Quay</span>
+                            <span class="pull-cost">⭐10</span>
+                        </button>
+                        <button id="btnPull10" class="cartoon-btn btn-pull btn-pull-10">
+                            <span>x10 Quay</span>
+                            <span class="pull-cost">⭐90</span>
+                        </button>
+                    </div>
+
+                    <!-- Pity counter -->
+                    <div class="pity-info">
+                        <span>🔰 Pity Hiếm: <strong id="pityRareCount">0</strong>/20</span>
+                        <span>🔥 Pity Sử Thi: <strong id="pityEpicCount">0</strong>/50</span>
+                    </div>
+
+                    <!-- Bộ sưu tập skin -->
+                    <div class="gacha-collection">
+                        <div class="collection-title">📦 Bộ Sưu Tập</div>
+                        <div class="skin-grid" id="skinGrid"></div>
+                    </div>
+
+                    <button id="btnCloseGacha" class="cartoon-btn btn-secondary">
+                        <span>ĐÓNG</span> ✖️
+                    </button>
+                </div>
             </div>
 
         </div>

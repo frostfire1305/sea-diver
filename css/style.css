@@ -437,3 +437,241 @@ body {
         font-size: 22px;
     }
 }
+
+/* === HỆ THỐNG GACHA === */
+
+/* Nút Gacha chính */
+.btn-gacha {
+    background: linear-gradient(180deg, #a29bfe 0%, #6c5ce7 100%);
+    color: #ffffff;
+    box-shadow: 0 6px 0 #4834d4;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+    border-color: #130f40;
+}
+.btn-gacha:hover { filter: brightness(1.1); }
+.btn-gacha:active { transform: translateY(6px); box-shadow: 0 0 0 #4834d4; }
+
+/* Gacha Card mở rộng */
+.gacha-card {
+    max-width: 340px;
+    max-height: 90vh;
+    overflow-y: auto;
+    gap: 10px;
+    padding: 20px 16px;
+    scrollbar-width: none;
+}
+.gacha-card::-webkit-scrollbar { display: none; }
+
+/* Header gacha */
+.gacha-header {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Ví sao */
+.gacha-wallet {
+    background: rgba(255, 220, 0, 0.2);
+    border: 2px solid #ffdd59;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 16px;
+    font-weight: 800;
+    color: #ffdd59;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.wallet-label { font-size: 12px; color: #f1f2f6; font-weight: 600; }
+
+/* Khu vực kết quả */
+.gacha-result-area {
+    width: 100%;
+    min-height: 110px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 16px;
+    border: 2px solid rgba(255,255,255,0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px;
+    overflow: hidden;
+}
+.gacha-idle-art { font-size: 44px; animation: floatDiver 2s ease-in-out infinite; }
+.gacha-idle-text { font-size: 13px; color: #a4b0be; font-weight: 600; }
+
+/* Kết quả 1 lần */
+.gacha-single-result {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.gacha-single-result .result-emoji { font-size: 52px; }
+.gacha-single-result .result-name { font-size: 15px; font-weight: 800; }
+.gacha-single-result .result-badge {
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 10px;
+    border-radius: 12px;
+    border: 2px solid;
+}
+
+/* Kết quả 10 lần */
+.gacha-multi-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    width: 100%;
+}
+.gacha-mini-card {
+    background: rgba(0,0,0,0.4);
+    border-radius: 8px;
+    border: 2px solid;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 4px 2px;
+    gap: 2px;
+    animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.gacha-mini-card .mini-emoji { font-size: 22px; }
+.gacha-mini-card .mini-rarity { font-size: 9px; font-weight: 800; }
+
+/* Màu theo độ hiếm */
+.rarity-common  { --rarity-color: #a4b0be; --rarity-bg: rgba(164,176,190,0.15); }
+.rarity-rare    { --rarity-color: #48dbfb; --rarity-bg: rgba(72,219,251,0.15); }
+.rarity-epic    { --rarity-color: #a29bfe; --rarity-bg: rgba(162,155,254,0.15); }
+.rarity-legend  { --rarity-color: #ffdd59; --rarity-bg: rgba(255,221,89,0.2);  }
+
+[class*="rarity-"] .result-badge,
+[class*="rarity-"] .mini-rarity { color: var(--rarity-color); border-color: var(--rarity-color); }
+[class*="rarity-"] .result-name,
+[class*="rarity-"] .mini-emoji  { filter: drop-shadow(0 0 6px var(--rarity-color)); }
+.gacha-mini-card[class*="rarity-"] { border-color: var(--rarity-color); background: var(--rarity-bg); }
+
+/* Nút quay */
+.gacha-pull-btns {
+    width: 100%;
+    display: flex;
+    gap: 10px;
+}
+.btn-pull {
+    flex: 1;
+    background: linear-gradient(180deg, #ff9f43 0%, #ee5a24 100%);
+    color: #ffffff;
+    box-shadow: 0 5px 0 #a62b0a;
+    text-shadow: 1px 1px 0 rgba(0,0,0,0.3);
+    border-color: #130f40;
+    flex-direction: column;
+    gap: 2px;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+.btn-pull:hover { filter: brightness(1.1); }
+.btn-pull:active { transform: translateY(5px); box-shadow: 0 0 0 #a62b0a; }
+.btn-pull:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.btn-pull-10 {
+    background: linear-gradient(180deg, #fd79a8 0%, #e84393 100%);
+    box-shadow: 0 5px 0 #8b0050;
+}
+.btn-pull-10:active { box-shadow: 0 0 0 #8b0050; }
+.pull-cost { font-size: 12px; font-weight: 700; opacity: 0.9; }
+
+/* Pity info */
+.pity-info {
+    width: 100%;
+    display: flex;
+    justify-content: space-around;
+    font-size: 11px;
+    color: #a4b0be;
+    font-weight: 700;
+    background: rgba(0,0,0,0.25);
+    border-radius: 10px;
+    padding: 5px 8px;
+}
+.pity-info strong { color: #ffdd59; }
+
+/* Bộ sưu tập */
+.gacha-collection {
+    width: 100%;
+    background: rgba(0,0,0,0.25);
+    border-radius: 12px;
+    padding: 10px;
+}
+.collection-title {
+    font-size: 13px;
+    font-weight: 800;
+    color: #dfe4ea;
+    margin-bottom: 8px;
+    text-align: center;
+}
+.skin-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+.skin-slot {
+    background: rgba(0,0,0,0.35);
+    border-radius: 10px;
+    border: 2px solid rgba(255,255,255,0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 7px 4px;
+    cursor: pointer;
+    transition: transform 0.1s, border-color 0.2s;
+    position: relative;
+}
+.skin-slot.locked { opacity: 0.35; cursor: default; filter: grayscale(0.8); }
+.skin-slot.equipped { border-color: #ffdd59; box-shadow: 0 0 8px rgba(255,221,89,0.4); }
+.skin-slot:not(.locked):hover { transform: scale(1.06); }
+.skin-slot .slot-emoji { font-size: 24px; }
+.skin-slot .slot-name { font-size: 9px; font-weight: 800; color: #dfe4ea; text-align: center; line-height: 1.2; }
+.skin-slot .slot-rarity { font-size: 8px; font-weight: 700; }
+.skin-slot .equipped-badge {
+    position: absolute;
+    top: -4px; right: -4px;
+    background: #ffdd59;
+    color: #130f40;
+    font-size: 8px;
+    font-weight: 900;
+    border-radius: 6px;
+    padding: 1px 4px;
+    border: 1px solid #130f40;
+}
+.skin-slot .locked-icon {
+    position: absolute;
+    top: 4px; right: 4px;
+    font-size: 12px;
+    opacity: 0.6;
+}
+
+/* Animations */
+@keyframes popIn {
+    from { opacity: 0; transform: scale(0.4) rotate(-10deg); }
+    to   { opacity: 1; transform: scale(1) rotate(0); }
+}
+@keyframes gachaShake {
+    0%, 100% { transform: translateX(0); }
+    20%       { transform: translateX(-6px) rotate(-3deg); }
+    40%       { transform: translateX(6px) rotate(3deg); }
+    60%       { transform: translateX(-4px); }
+    80%       { transform: translateX(4px); }
+}
+.gacha-shaking { animation: gachaShake 0.5s ease; }
+
+/* Legend glow */
+.rarity-legend .gacha-idle-art,
+.rarity-legend .result-emoji {
+    animation: legendGlow 1s ease-in-out infinite alternate;
+}
+@keyframes legendGlow {
+    from { filter: drop-shadow(0 0 8px #ffdd59); }
+    to   { filter: drop-shadow(0 0 20px #ffdd59) drop-shadow(0 0 40px #ff9f43); }
+}

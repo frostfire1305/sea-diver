@@ -183,6 +183,140 @@
 
         const sound = new SoundEngine();
 
+        // === HỆ THỐNG GACHA ===
+        const SKINS = [
+            { id: 'default',   name: 'Thợ Lặn\nThường',  emoji: '🤿',  rarity: 'common', rarityName: 'Thường',
+              colors: { suit: '#ff6b35', helmet: '#feca57', visor: '#48dbfb', tank: '#f1c40f', flipper: '#ff4757' } },
+            { id: 'pink',      name: 'Thợ Lặn\nHồng',    emoji: '🩷',  rarity: 'common', rarityName: 'Thường',
+              colors: { suit: '#fd79a8', helmet: '#ffeaa7', visor: '#ff8fc8', tank: '#fdcb6e', flipper: '#e84393' } },
+            { id: 'star',      name: 'Thợ Lặn\nSao',     emoji: '⭐',  rarity: 'rare',   rarityName: 'Hiếm',
+              colors: { suit: '#ffd32a', helmet: '#fff200', visor: '#ffda00', tank: '#ffa801', flipper: '#f9ca24' } },
+            { id: 'king',      name: 'Vua\nBiển Cả',     emoji: '👑',  rarity: 'rare',   rarityName: 'Hiếm',
+              colors: { suit: '#0652dd', helmet: '#ffd32a', visor: '#48dbfb', tank: '#12CBC4', flipper: '#009432' } },
+            { id: 'dragon',    name: 'Thợ Lặn\nRồng',    emoji: '🐉',  rarity: 'epic',   rarityName: 'Sử Thi',
+              colors: { suit: '#6c5ce7', helmet: '#a29bfe', visor: '#fd79a8', tank: '#2d3436', flipper: '#00cec9' } },
+            { id: 'legend',    name: 'Huyền\nThoại',     emoji: '🌟',  rarity: 'legend', rarityName: 'Huyền Thoại',
+              colors: { suit: '#e17055', helmet: '#fdcb6e', visor: '#81ecec', tank: '#2d3436', flipper: '#d63031' } },
+        ];
+
+        // Xác suất gacha (tổng = 100)
+        const GACHA_POOL = [
+            { id: 'default', weight: 40 },
+            { id: 'pink',    weight: 25 },
+            { id: 'star',    weight: 15 },
+            { id: 'king',    weight: 10 },
+            { id: 'dragon',  weight: 7  },
+            { id: 'legend',  weight: 3  },
+        ];
+
+        class GachaSystem {
+            constructor() {
+                // Tổng sao tích lũy (dùng để quay)
+                this.totalStars = parseInt(localStorage.getItem('sea_total_stars')) || 0;
+                // Skin đã mở
+                this.ownedSkins = JSON.parse(localStorage.getItem('sea_owned_skins') || '["default"]');
+                // Skin đang dùng
+                this.equippedSkin = localStorage.getItem('sea_equipped_skin') || 'default';
+                // Pity counters
+                this.pityRare = parseInt(localStorage.getItem('sea_pity_rare')) || 0;
+                this.pityEpic = parseInt(localStorage.getItem('sea_pity_epic')) || 0;
+            }
+
+            save() {
+                localStorage.setItem('sea_total_stars', this.totalStars);
+                localStorage.setItem('sea_owned_skins', JSON.stringify(this.ownedSkins));
+                localStorage.setItem('sea_equipped_skin', this.equippedSkin);
+                localStorage.setItem('sea_pity_rare', this.pityRare);
+                localStorage.setItem('sea_pity_epic', this.pityEpic);
+            }
+
+            addStars(n) {
+                this.totalStars += n;
+                this.save();
+            }
+
+            getSkinById(id) {
+                return SKINS.find(s => s.id === id) || SKINS[0];
+            }
+
+            getEquippedSkin() {
+                return this.getSkinById(this.equippedSkin);
+            }
+
+            // Quay 1 viên
+            rollOne() {
+                this.pityRare++;
+                this.pityEpic++;
+
+                // Pity: 50 lần không Sử Thi → đảm bảo Sử Thi
+                if (this.pityEpic >= 50) {
+                    this.pityEpic = 0;
+                    this.pityRare = 0;
+                    const epicPool = GACHA_POOL.filter(g => {
+                        const skin = this.getSkinById(g.id);
+                        return skin.rarity === 'epic' || skin.rarity === 'legend';
+                    });
+                    return this._pickFrom(epicPool);
+                }
+
+                // Pity: 20 lần không Hiếm → đảm bảo Hiếm
+                if (this.pityRare >= 20) {
+                    this.pityRare = 0;
+                    const rarePool = GACHA_POOL.filter(g => {
+                        const skin = this.getSkinById(g.id);
+                        return skin.rarity !== 'common';
+                    });
+                    return this._pickFrom(rarePool);
+                }
+
+                const result = this._pickFrom(GACHA_POOL);
+                const skin = this.getSkinById(result.id);
+
+                // Reset pity nếu ra đủ hiếm
+                if (skin.rarity !== 'common') this.pityRare = 0;
+                if (skin.rarity === 'epic' || skin.rarity === 'legend') this.pityEpic = 0;
+
+                return result;
+            }
+
+            _pickFrom(pool) {
+                const total = pool.reduce((s, g) => s + g.weight, 0);
+                let rand = Math.random() * total;
+                for (const g of pool) {
+                    rand -= g.weight;
+                    if (rand <= 0) return this.getSkinById(g.id);
+                }
+                return this.getSkinById(pool[pool.length - 1].id);
+            }
+
+            pull(count) {
+                const cost = count === 1 ? 10 : 90;
+                if (this.totalStars < cost) return null;
+                this.totalStars -= cost;
+
+                const results = [];
+                for (let i = 0; i < count; i++) {
+                    const skin = this.rollOne();
+                    results.push(skin);
+                    if (!this.ownedSkins.includes(skin.id)) {
+                        this.ownedSkins.push(skin.id);
+                    }
+                }
+
+                this.save();
+                return results;
+            }
+
+            equipSkin(id) {
+                if (this.ownedSkins.includes(id)) {
+                    this.equippedSkin = id;
+                    this.save();
+                }
+            }
+        }
+
+        const gacha = new GachaSystem();
+
         // === CÁC BIẾN TRẠNG THÁI GAME ===
         const STATE = {
             START: 'START',
@@ -383,6 +517,9 @@
             }
             
             draw() {
+                const skin = gacha.getEquippedSkin();
+                const c = skin.colors;
+
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.tilt);
@@ -391,7 +528,7 @@
                 const kick1 = Math.sin(this.flipperAngle) * 8;
                 const kick2 = -Math.sin(this.flipperAngle) * 8;
 
-                ctx.fillStyle = '#ff4757';
+                ctx.fillStyle = c.flipper;
                 ctx.strokeStyle = '#130f40';
                 ctx.lineWidth = 2.5;
                 ctx.beginPath();
@@ -405,7 +542,7 @@
                 ctx.stroke();
 
                 // 2. Bình dưỡng khí sau lưng (Scuba Tank)
-                ctx.fillStyle = '#f1c40f';
+                ctx.fillStyle = c.tank;
                 ctx.beginPath();
                 ctx.roundRect(-8, -14, 16, 26, 6);
                 ctx.fill();
@@ -415,7 +552,7 @@
                 ctx.fillRect(-8, -4, 16, 4);
 
                 // 3. Thân thợ lặn (Diving Suit)
-                ctx.fillStyle = '#ff6b35';
+                ctx.fillStyle = c.suit;
                 ctx.beginPath();
                 ctx.roundRect(-15, -12, 30, 32, 12);
                 ctx.fill();
@@ -425,17 +562,31 @@
                 ctx.fillRect(-15, 0, 30, 4);
 
                 // 4. Mũ lặn hình tròn & Kính lặn (Helmet & Visor)
-                ctx.fillStyle = '#feca57';
+                ctx.fillStyle = c.helmet;
                 ctx.beginPath();
                 ctx.arc(0, 10, 16, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.stroke();
 
-                ctx.fillStyle = '#48dbfb';
+                ctx.fillStyle = c.visor;
                 ctx.beginPath();
                 ctx.arc(0, 12, 11, 0, Math.PI * 2);
                 ctx.fill();
                 ctx.stroke();
+
+                // Aura cho skin huyền thoại/sử thi
+                if (skin.rarity === 'legend' || skin.rarity === 'epic') {
+                    const glowColor = skin.rarity === 'legend' ? 'rgba(255,221,89,0.25)' : 'rgba(162,155,254,0.25)';
+                    ctx.save();
+                    ctx.shadowBlur = 18;
+                    ctx.shadowColor = skin.rarity === 'legend' ? '#ffdd59' : '#a29bfe';
+                    ctx.globalAlpha = 0.5 + Math.sin(frameCount * 0.08) * 0.15;
+                    ctx.fillStyle = glowColor;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 22, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
 
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
                 ctx.beginPath();
@@ -820,6 +971,7 @@
                 if (star.checkCollect(diver)) {
                     starsCollected++;
                     score += 50;
+                    gacha.addStars(1); // Cộng 1 sao vào ví gacha
 
                     starCountEl.textContent = starsCollected;
 
@@ -1066,6 +1218,131 @@
 
         btnSound.addEventListener('click', () => {
             sound.toggle();
+        });
+
+        // === GACHA UI ===
+        const gachaScreen    = document.getElementById('gachaScreen');
+        const gachaStarCountEl = document.getElementById('gachaStarCount');
+        const gachaResultArea  = document.getElementById('gachaResultArea');
+        const btnPull1       = document.getElementById('btnPull1');
+        const btnPull10      = document.getElementById('btnPull10');
+        const btnCloseGacha  = document.getElementById('btnCloseGacha');
+        const btnGachaFromStart = document.getElementById('btnGachaFromStart');
+        const btnGachaFromOver  = document.getElementById('btnGachaFromOver');
+        const skinGridEl     = document.getElementById('skinGrid');
+        const pityRareEl     = document.getElementById('pityRareCount');
+        const pityEpicEl     = document.getElementById('pityEpicCount');
+
+        function openGacha() {
+            gachaScreen.classList.add('active');
+            updateGachaUI();
+        }
+
+        function closeGacha() {
+            gachaScreen.classList.remove('active');
+        }
+
+        function updateGachaUI() {
+            gachaStarCountEl.textContent = gacha.totalStars;
+            pityRareEl.textContent = gacha.pityRare;
+            pityEpicEl.textContent = gacha.pityEpic;
+            btnPull1.disabled  = gacha.totalStars < 10;
+            btnPull10.disabled = gacha.totalStars < 90;
+            renderSkinGrid();
+        }
+
+        function renderSkinGrid() {
+            skinGridEl.innerHTML = '';
+            SKINS.forEach(skin => {
+                const owned    = gacha.ownedSkins.includes(skin.id);
+                const equipped = gacha.equippedSkin === skin.id;
+
+                const slot = document.createElement('div');
+                slot.className = 'skin-slot' +
+                    (owned    ? ''          : ' locked') +
+                    (equipped ? ' equipped' : '');
+
+                const rarityClass = {
+                    common: 'rarity-common', rare: 'rarity-rare',
+                    epic: 'rarity-epic', legend: 'rarity-legend'
+                }[skin.rarity] || '';
+
+                slot.innerHTML = `
+                    ${equipped ? '<span class="equipped-badge">✓ ĐEO</span>' : ''}
+                    ${!owned   ? '<span class="locked-icon">🔒</span>' : ''}
+                    <span class="slot-emoji">${skin.emoji}</span>
+                    <span class="slot-name ${rarityClass}">${skin.name.replace('\\n', '<br>')}</span>
+                    <span class="slot-rarity ${rarityClass}">${skin.rarityName}</span>
+                `;
+
+                if (owned && !equipped) {
+                    slot.addEventListener('click', () => {
+                        gacha.equipSkin(skin.id);
+                        renderSkinGrid();
+                    });
+                }
+
+                skinGridEl.appendChild(slot);
+            });
+        }
+
+        function rarityClass(skin) {
+            return { common: 'rarity-common', rare: 'rarity-rare', epic: 'rarity-epic', legend: 'rarity-legend' }[skin.rarity] || '';
+        }
+
+        function showSingleResult(skin) {
+            gachaResultArea.innerHTML = `
+                <div class="gacha-single-result ${rarityClass(skin)}">
+                    <span class="result-emoji">${skin.emoji}</span>
+                    <span class="result-name">${skin.name.replace('\\n', ' ')}</span>
+                    <span class="result-badge">${skin.rarityName}</span>
+                </div>`;
+        }
+
+        function showMultiResult(skins) {
+            const grid = document.createElement('div');
+            grid.className = 'gacha-multi-grid';
+            skins.forEach((skin, i) => {
+                const card = document.createElement('div');
+                card.className = `gacha-mini-card ${rarityClass(skin)}`;
+                card.style.animationDelay = `${i * 0.07}s`;
+                card.innerHTML = `
+                    <span class="mini-emoji">${skin.emoji}</span>
+                    <span class="mini-rarity">${skin.rarityName}</span>`;
+                grid.appendChild(card);
+            });
+            gachaResultArea.innerHTML = '';
+            gachaResultArea.appendChild(grid);
+        }
+
+        function doPull(count) {
+            const results = gacha.pull(count);
+            if (!results) {
+                gachaResultArea.innerHTML = `<div class="gacha-idle-art">😢</div><p class="gacha-idle-text">Không đủ sao!</p>`;
+                return;
+            }
+
+            // Shake animation
+            gachaResultArea.classList.add('gacha-shaking');
+            setTimeout(() => gachaResultArea.classList.remove('gacha-shaking'), 600);
+
+            setTimeout(() => {
+                if (count === 1) showSingleResult(results[0]);
+                else showMultiResult(results);
+                updateGachaUI();
+            }, 520);
+        }
+
+        btnPull1.addEventListener('click', () => doPull(1));
+        btnPull10.addEventListener('click', () => doPull(10));
+        btnCloseGacha.addEventListener('click', closeGacha);
+        btnGachaFromStart.addEventListener('click', () => {
+            sound.init();
+            openGacha();
+        });
+        btnGachaFromOver.addEventListener('click', () => {
+            sound.init();
+            openGacha();
         });
 
         // Bắt đầu vòng lặp game
