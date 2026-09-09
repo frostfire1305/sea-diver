@@ -214,7 +214,7 @@
                 // Tổng sao tích lũy (dùng để quay)
                 this.totalStars = parseInt(localStorage.getItem('sea_total_stars')) || 0;
                 // Skin đã mở
-                this.ownedSkins = JSON.parse(localStorage.getItem('sea_owned_skins') || '["default  "]');
+                this.ownedSkins = JSON.parse(localStorage.getItem('sea_owned_skins') || '["default"]');
                 // Skin đang dùng
                 this.equippedSkin = localStorage.getItem('sea_equipped_skin') || 'default';
                 // Pity counters
