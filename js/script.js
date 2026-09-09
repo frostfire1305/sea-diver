@@ -971,7 +971,6 @@
                 if (star.checkCollect(diver)) {
                     starsCollected++;
                     score += 50;
-                    gacha.addStars(1); // Cộng 1 sao vào ví gacha
 
                     starCountEl.textContent = starsCollected;
 
@@ -1218,131 +1217,6 @@
 
         btnSound.addEventListener('click', () => {
             sound.toggle();
-        });
-
-        // === GACHA UI ===
-        const gachaScreen    = document.getElementById('gachaScreen');
-        const gachaStarCountEl = document.getElementById('gachaStarCount');
-        const gachaResultArea  = document.getElementById('gachaResultArea');
-        const btnPull1       = document.getElementById('btnPull1');
-        const btnPull10      = document.getElementById('btnPull10');
-        const btnCloseGacha  = document.getElementById('btnCloseGacha');
-        const btnGachaFromStart = document.getElementById('btnGachaFromStart');
-        const btnGachaFromOver  = document.getElementById('btnGachaFromOver');
-        const skinGridEl     = document.getElementById('skinGrid');
-        const pityRareEl     = document.getElementById('pityRareCount');
-        const pityEpicEl     = document.getElementById('pityEpicCount');
-
-        function openGacha() {
-            gachaScreen.classList.add('active');
-            updateGachaUI();
-        }
-
-        function closeGacha() {
-            gachaScreen.classList.remove('active');
-        }
-
-        function updateGachaUI() {
-            gachaStarCountEl.textContent = gacha.totalStars;
-            pityRareEl.textContent = gacha.pityRare;
-            pityEpicEl.textContent = gacha.pityEpic;
-            btnPull1.disabled  = gacha.totalStars < 10;
-            btnPull10.disabled = gacha.totalStars < 90;
-            renderSkinGrid();
-        }
-
-        function renderSkinGrid() {
-            skinGridEl.innerHTML = '';
-            SKINS.forEach(skin => {
-                const owned    = gacha.ownedSkins.includes(skin.id);
-                const equipped = gacha.equippedSkin === skin.id;
-
-                const slot = document.createElement('div');
-                slot.className = 'skin-slot' +
-                    (owned    ? ''          : ' locked') +
-                    (equipped ? ' equipped' : '');
-
-                const rarityClass = {
-                    common: 'rarity-common', rare: 'rarity-rare',
-                    epic: 'rarity-epic', legend: 'rarity-legend'
-                }[skin.rarity] || '';
-
-                slot.innerHTML = `
-                    ${equipped ? '<span class="equipped-badge">✓ ĐEO</span>' : ''}
-                    ${!owned   ? '<span class="locked-icon">🔒</span>' : ''}
-                    <span class="slot-emoji">${skin.emoji}</span>
-                    <span class="slot-name ${rarityClass}">${skin.name.replace('\\n', '<br>')}</span>
-                    <span class="slot-rarity ${rarityClass}">${skin.rarityName}</span>
-                `;
-
-                if (owned && !equipped) {
-                    slot.addEventListener('click', () => {
-                        gacha.equipSkin(skin.id);
-                        renderSkinGrid();
-                    });
-                }
-
-                skinGridEl.appendChild(slot);
-            });
-        }
-
-        function rarityClass(skin) {
-            return { common: 'rarity-common', rare: 'rarity-rare', epic: 'rarity-epic', legend: 'rarity-legend' }[skin.rarity] || '';
-        }
-
-        function showSingleResult(skin) {
-            gachaResultArea.innerHTML = `
-                <div class="gacha-single-result ${rarityClass(skin)}">
-                    <span class="result-emoji">${skin.emoji}</span>
-                    <span class="result-name">${skin.name.replace('\\n', ' ')}</span>
-                    <span class="result-badge">${skin.rarityName}</span>
-                </div>`;
-        }
-
-        function showMultiResult(skins) {
-            const grid = document.createElement('div');
-            grid.className = 'gacha-multi-grid';
-            skins.forEach((skin, i) => {
-                const card = document.createElement('div');
-                card.className = `gacha-mini-card ${rarityClass(skin)}`;
-                card.style.animationDelay = `${i * 0.07}s`;
-                card.innerHTML = `
-                    <span class="mini-emoji">${skin.emoji}</span>
-                    <span class="mini-rarity">${skin.rarityName}</span>`;
-                grid.appendChild(card);
-            });
-            gachaResultArea.innerHTML = '';
-            gachaResultArea.appendChild(grid);
-        }
-
-        function doPull(count) {
-            const results = gacha.pull(count);
-            if (!results) {
-                gachaResultArea.innerHTML = `<div class="gacha-idle-art">😢</div><p class="gacha-idle-text">Không đủ sao!</p>`;
-                return;
-            }
-
-            // Shake animation
-            gachaResultArea.classList.add('gacha-shaking');
-            setTimeout(() => gachaResultArea.classList.remove('gacha-shaking'), 600);
-
-            setTimeout(() => {
-                if (count === 1) showSingleResult(results[0]);
-                else showMultiResult(results);
-                updateGachaUI();
-            }, 520);
-        }
-
-        btnPull1.addEventListener('click', () => doPull(1));
-        btnPull10.addEventListener('click', () => doPull(10));
-        btnCloseGacha.addEventListener('click', closeGacha);
-        btnGachaFromStart.addEventListener('click', () => {
-            sound.init();
-            openGacha();
-        });
-        btnGachaFromOver.addEventListener('click', () => {
-            sound.init();
-            openGacha();
         });
 
         // Bắt đầu vòng lặp game
