@@ -317,24 +317,43 @@
                 this.bubbleTimer = 0;
             }
 
-            update() {
+            update(deltaSec) {
+                const dt = deltaSec * 60;
+
                 if (keys.left) {
-                    this.vx -= 0.85;
-                    if (Math.random() < 0.1) sound.playSwim();
-                }
-                if (keys.right) {
-                    this.vx += 0.85;
-                    if (Math.random() < 0.1) sound.playSwim();
+                    this.vx -= 0.85 * dt;
+
+                    if (Math.random() < 0.1 * dt) {
+                        sound.playSwim();
+                    }
                 }
 
-                this.vx = Math.max(-this.speed, Math.min(this.speed, this.vx));
-                this.x += this.vx;
-                this.vx *= this.friction;
+                if (keys.right) {
+                    this.vx += 0.85 * dt;
+
+                    if (Math.random() < 0.1 * dt) {
+                        sound.playSwim();
+                    }
+                }
+
+                this.vx = Math.max(
+                    -this.speed,
+                    Math.min(this.speed, this.vx)
+                );
+
+                this.x += this.vx * dt;
+
+                // Friction không phụ thuộc FPS
+                this.vx *= Math.pow(this.friction, dt);
 
                 const targetTilt = (this.vx / this.speed) * 0.45;
-                this.tilt += (targetTilt - this.tilt) * 0.18;
+
+                this.tilt +=
+                    (targetTilt - this.tilt) *
+                    (1 - Math.pow(1 - 0.18, dt));
 
                 const margin = 24;
+
                 if (this.x < margin) {
                     this.x = margin;
                     this.vx = 0;
@@ -343,21 +362,26 @@
                     this.vx = 0;
                 }
 
-                this.flipperAngle += 0.18;
+                this.flipperAngle += 0.18 * dt;
 
-                this.bubbleTimer++;
-                if (this.bubbleTimer % 7 === 0) {
-                    particles.push(new BubbleParticle(
-                        this.x - Math.sin(this.tilt) * 15,
-                        this.y - 12,
-                        (Math.random() - 0.5) * 0.8,
-                        -1.5 - Math.random() * 1.5,
-                        2 + Math.random() * 3.5,
-                        'rgba(255, 255, 255, 0.75)'
-                    ));
+                this.bubbleTimer += dt;
+
+                if (this.bubbleTimer >= 7) {
+                    this.bubbleTimer -= 7;
+
+                    particles.push(
+                        new BubbleParticle(
+                            this.x - Math.sin(this.tilt) * 15,
+                            this.y - 12,
+                            (Math.random() - 0.5) * 0.8,
+                            -1.5 - Math.random() * 1.5,
+                            2 + Math.random() * 3.5,
+                            'rgba(255, 255, 255, 0.75)'
+                        )
+                    );
                 }
             }
-
+            
             draw() {
                 ctx.save();
                 ctx.translate(this.x, this.y);
@@ -501,8 +525,9 @@
                 }
             }
 
-            update() {
-                this.y -= gameSpeed;
+            update(deltaSec) {
+            const dt = deltaSec * 60;
+            this.y -= gameSpeed * dt;
             }
 
             draw() {
@@ -584,10 +609,12 @@
                 this.sparklePhase = Math.random() * Math.PI * 2;
             }
 
-            update() {
-                this.y -= gameSpeed;
-                this.angle += 0.04;
-                this.sparklePhase += 0.08;
+            update(deltaSec) {
+            const dt = deltaSec * 60;
+
+            this.y -= gameSpeed * dt;
+            this.angle += 0.04 * dt;
+            this.sparklePhase += 0.08 * dt;
             }
 
             draw() {
@@ -712,11 +739,13 @@
                 this.decay = 0.03 + Math.random() * 0.03;
             }
 
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.vy += 0.1;
-                this.life -= this.decay;
+            update(deltaSec) {
+                const dt = deltaSec * 60;
+
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+
+                this.life -= dt;
             }
 
             draw() {
@@ -748,17 +777,28 @@
         let obstacleTimer = 0;
         const obstacleInterval = 110;
 
-        function handleObstacles() {
-            obstacleTimer++;
+        function handleObstacles(deltaSec) {
+            obstacleTimer += deltaSec * 60;
+
             if (obstacleTimer >= obstacleInterval) {
                 obstacleTimer = 0;
-                const type = Math.random() < 0.25 ? 'center' : 'gap';
-                obstacles.push(new RockObstacle(canvas.height + 40, type));
+
+                const type = Math.random() < 0.25
+                    ? 'center'
+                    : 'gap';
+
+                obstacles.push(
+                    new RockObstacle(
+                        canvas.height + 40,
+                        type
+                    )
+                );
             }
 
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 const obs = obstacles[i];
-                obs.update();
+
+                obs.update(deltaSec);
 
                 if (obs.checkCollision(diver)) {
                     gameOver();
@@ -770,20 +810,28 @@
                 }
             }
         }
-
-        function handleStars() {
+        
+        function handleStars(deltaSec) {
             for (let i = stars.length - 1; i >= 0; i--) {
                 const star = stars[i];
-                star.update();
+
+                star.update(deltaSec);
 
                 if (star.checkCollect(diver)) {
                     starsCollected++;
                     score += 50;
+
                     starCountEl.textContent = starsCollected;
+
                     sound.playStar();
 
                     for (let k = 0; k < 12; k++) {
-                        particles.push(new SparkleParticle(star.x, star.y));
+                        particles.push(
+                            new SparkleParticle(
+                                star.x,
+                                star.y
+                            )
+                        );
                     }
 
                     stars.splice(i, 1);
@@ -796,10 +844,12 @@
             }
         }
 
-        function handleParticles() {
+        function handleParticles(deltaSec) {
             for (let i = particles.length - 1; i >= 0; i--) {
                 const p = particles[i];
-                p.update();
+
+                p.update(deltaSec);
+
                 if (p.life <= 0) {
                     particles.splice(i, 1);
                 }
@@ -860,47 +910,56 @@
         function gameLoop(timestamp) {
             frameCount++;
 
-            // Tính delta time để đo thời gian chơi chuẩn xác
             if (!lastTimestamp) lastTimestamp = timestamp;
+
+            // Delta time tính theo giây
             const deltaMs = Math.min(timestamp - lastTimestamp, 100);
+            const deltaSec = deltaMs / 1000;
+
             lastTimestamp = timestamp;
 
-            // 1. Vẽ nền
             drawBackground();
 
-            // 2. Cập nhật & Vẽ các thành phần theo trạng thái
             if (currentState === STATE.PLAYING) {
                 playTimeMs += deltaMs;
+
                 const playSeconds = playTimeMs / 1000;
 
-                // Tính toán độ sâu theo thời gian: 30 giây = 5 mét (1 mét mỗi 6 giây)
                 depthMeters = (playSeconds / 30) * 5;
                 depthCountEl.textContent = depthMeters.toFixed(1);
 
-                // Tăng nhẹ tốc độ theo thời gian lặn
-                gameSpeed = Math.min(maxSpeed, baseSpeed + (playSeconds / 90) * 1.2);
+                gameSpeed = Math.min(
+                    maxSpeed,
+                    baseSpeed + (playSeconds / 90) * 1.2
+                );
 
-                // Cập nhật các đối tượng
-                diver.update();
-                handleObstacles();
-                handleStars();
-                handleParticles();
-            } else if (currentState === STATE.START || currentState === STATE.PAUSED) {
-                diver.y = Math.min(140, canvas.height * 0.22) + Math.sin(frameCount * 0.05) * 8;
+                diver.update(deltaSec);
+                handleObstacles(deltaSec);
+                handleStars(deltaSec);
+                handleParticles(deltaSec);
+
+            } else if (
+                currentState === STATE.START ||
+                currentState === STATE.PAUSED
+            ) {
+                diver.y =
+                    Math.min(140, canvas.height * 0.22) +
+                    Math.sin(frameCount * 0.05) * 8;
+
                 diver.flipperAngle += 0.1;
-                handleParticles();
+
+                handleParticles(deltaSec);
             }
 
-            // 3. Vẽ các đối tượng
             obstacles.forEach(obs => obs.draw());
             stars.forEach(star => star.draw());
             particles.forEach(p => p.draw());
+
             diver.draw();
 
-            // Lặp lại khung hình
             requestAnimationFrame(gameLoop);
         }
-
+        
         // === CÁC HÀM ĐIỀU HÀNH TRẠNG THÁI GAME ===
         function startGame() {
             sound.init();
