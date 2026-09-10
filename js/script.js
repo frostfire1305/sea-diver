@@ -268,7 +268,6 @@
         flipper: "#f92424",
       },
     },
-    
   ];
 
   // Xác suất gacha (tổng = 100)
