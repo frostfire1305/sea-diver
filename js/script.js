@@ -364,7 +364,7 @@
     }
 
     pull(count) {
-      const cost = count === 1 ? 10 : 90;
+      const cost = 0;
       if (this.totalStars < cost) return null;
       this.totalStars -= cost;
 
