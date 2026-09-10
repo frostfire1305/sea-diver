@@ -1643,8 +1643,8 @@
     gachaStarCountEl.textContent = gacha.totalStars;
     pityRareEl.textContent = gacha.pityRare;
     pityEpicEl.textContent = gacha.pityEpic;
-    btnPull1.disabled = gacha.totalStars < 10;
-    btnPull10.disabled = gacha.totalStars < 90;
+    btnPull1.disabled = gacha.totalStars < 0;
+    btnPull10.disabled = gacha.totalStars < 0;
     renderSkinGrid();
   }
 
