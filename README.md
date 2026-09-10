@@ -14,3 +14,4 @@ git push
 
 # nếu muốn chỉnh lượt quay thì thực hiện các bước sau
 - tìm đến const cost và chỉnh count tùy ý(hiện tại count đang là 1l/10s - 10l/90s)
+- muốn được miễn phí lượt quay thì tìm đến hàm pull(count) rồi cho cost = 0, như vậy thì stars sẽ không bị trừ để có thể thực hiện nhiều lượt quay
