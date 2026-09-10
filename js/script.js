@@ -261,9 +261,9 @@
       rarity: "legend",
       rarityName: "Thần thoại",
       colors: {
-        suit: "#880303",
-        helmet: "#f92424",
-        visor: "#ff8c00",
+        suit: "#c41e1e",
+        helmet: "#c41e1e",
+        visor: "#ffc400",
         tank: "#ffa801",
         flipper: "#f92424",
       },
