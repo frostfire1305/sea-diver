@@ -217,7 +217,7 @@
       name: "Thiên thần",
       emoji: "🌟",
       rarity: "common",
-      rarityName: "Thường",
+      rarityName: "Hiếm",
       colors: {
         suit: "#e17055",
         helmet: "#fdcb6e",
@@ -364,7 +364,7 @@
     }
 
     pull(count) {
-      const cost = count === 1 ? 10 : 90;
+      const cost = count === 1 ? 1 : 10;
       if (this.totalStars < cost) return null;
       this.totalStars -= cost;
 
@@ -1667,7 +1667,7 @@
         }[skin.rarity] || "";
 
       slot.innerHTML = `
-                    ${equipped ? '<span class="equipped-badge">✓ ĐEO</span>' : ""}
+                    ${equipped ? '<span class="equipped-badge">✓ CHỌN</span>' : ""}
                     ${!owned ? '<span class="locked-icon">🔒</span>' : ""}
                     <span class="slot-emoji">${skin.emoji}</span>
                     <span class="slot-name ${rarityClass}">${skin.name.replace("\\n", "<br>")}</span>
