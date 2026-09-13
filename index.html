@@ -22,13 +22,13 @@
 
             <!-- Giao diện HUD trên màn hình chơi -->
             <div class="hud" id="hud">
+                <div class="hud-item level-box">
+                    <span class="hud-icon">🗺️</span>
+                    <span id="levelDisplay">Ải 1</span>
+                </div>
                 <div class="hud-item score-box">
                     <span class="hud-icon">⭐</span>
-                    <span id="starCount">0</span>
-                </div>
-                <div class="hud-item depth-box">
-                    <span class="hud-icon">⚓</span>
-                    <span id="depthCount">0</span><small>m</small>
+                    <span id="starCount">0</span>/<span id="totalLevelStars">5</span>
                 </div>
                 <div class="hud-controls">
                     <button id="btnSound" class="hud-btn" title="Bật/Tắt Âm Thanh">🔊</button>
@@ -46,11 +46,11 @@
                     </div>
                     
                     <div class="high-score-preview">
-                        <span>⚓ Kỷ lục lặn: <strong id="startMaxDepth">0</strong> m</span>
+                        <span>🏆 Tiến độ: <strong id="startProgress">Level 1/5</strong></span>
                     </div>
 
                     <p class="game-instructions">
-                        Né các <strong>tảng đá</strong> ngầm &amp; Thu thập <strong>ngôi sao vàng</strong>!
+                        Bơi &amp; nhảy qua các <strong>bệ san hô</strong>, né <strong>bẫy gai</strong> &amp; tìm <strong>Rương kho báu</strong>!
                     </p>
 
                     <button id="btnPlay" class="cartoon-btn btn-primary">
@@ -62,8 +62,26 @@
                     </button>
 
                     <div class="controls-guide">
-                        <span>Phím ⬅️ ➡️ hoặc A / D để di chuyển</span>
+                        <span>Dùng WASD hoặc phím Mũi tên ⬆️ ⬅️ ⬇️ ➡️ để bơi</span>
                     </div>
+                </div>
+            </div>
+
+            <!-- Màn hình Chọn Level -->
+            <div class="overlay" id="levelSelectScreen">
+                <div class="modal-card level-modal-card">
+                    <div class="modal-header">
+                        <h2 class="modal-title">CHỌN MÀN CHƠI</h2>
+                        <p class="modal-subtitle">Vượt level hiện tại để mở khóa màn tiếp theo!</p>
+                    </div>
+                    
+                    <div class="level-grid" id="levelGrid">
+                        <!-- Sẽ được vẽ bằng JS -->
+                    </div>
+
+                    <button id="btnBackFromLevelSelect" class="cartoon-btn btn-secondary">
+                        <span>QUAY LẠI</span> ↩️
+                    </button>
                 </div>
             </div>
 
@@ -78,6 +96,9 @@
                     <button id="btnRestartFromPause" class="cartoon-btn btn-secondary">
                         <span>CHƠI LẠI</span> 🔄
                     </button>
+                    <button id="btnHomeFromPause" class="cartoon-btn btn-home">
+                        <span>TRANG CHỦ</span> 🏠
+                    </button>
                 </div>
             </div>
 
@@ -91,24 +112,23 @@
 
                     <div class="result-stats">
                         <div class="stat-row highlight">
-                            <span>⭐ Ngôi sao:</span>
+                            <span>⭐ Ngôi sao thu thập:</span>
                             <strong id="finalStars">0</strong>
                         </div>
                         <div class="stat-row">
-                            <span>⚓ Độ sâu đạt được:</span>
-                            <strong id="finalDepth">0 m</strong>
-                        </div>
-                        <div class="stat-row">
-                            <span>💯 Tổng điểm:</span>
-                            <strong id="finalScore">0</strong>
-                        </div>
-                        <div class="stat-row best-record" id="newBestBadge">
-                            <span>🎉 KỶ LỤC MỚI! 🎉</span>
+                            <span>🗺️ Màn chơi:</span>
+                            <strong id="finalLevelName">Ải 1</strong>
                         </div>
                     </div>
 
                     <button id="btnRestart" class="cartoon-btn btn-primary">
-                        <span>HỒI SINH</span> 🔄
+                        <span>THỬ LẠI</span> 🔄
+                    </button>
+                    <button id="btnSelectFromOver" class="cartoon-btn btn-secondary">
+                        <span>CHỌN LEVEL</span> 🗺️
+                    </button>
+                    <button id="btnHomeFromOver" class="cartoon-btn btn-home">
+                        <span>TRANG CHỦ</span> 🏠
                     </button>
                     <button id="btnGachaFromOver" class="cartoon-btn btn-gacha">
                         <span>GACHA SKIN</span> 🎰
@@ -116,16 +136,50 @@
                 </div>
             </div>
 
-            <!-- 2 Nút điều khiển Trái / Phải cảm ứng trên màn hình -->
+            <!-- Màn hình Hoàn Thành Ải (Victory Screen) -->
+            <div class="overlay" id="victoryScreen">
+                <div class="modal-card victory-card">
+                    <div class="game-over-header">
+                        <span class="victory-icon">🏆</span>
+                        <h2 class="modal-title victory-title">VƯỢT LEVEL THÀNH CÔNG!</h2>
+                    </div>
+
+                    <div class="result-stats">
+                        <div class="stat-row highlight">
+                            <span>⭐ Sao đạt được:</span>
+                            <strong id="victoryStars">0/5</strong>
+                        </div>
+                        <div class="stat-row">
+                            <span>⏱️ Thời gian:</span>
+                            <strong id="victoryTime">0s</strong>
+                        </div>
+                    </div>
+
+                    <button id="btnNextLevel" class="cartoon-btn btn-primary">
+                        <span>LEVEL TIẾP THEO</span> ⏭️
+                    </button>
+                    <button id="btnReplayVictory" class="cartoon-btn btn-secondary">
+                        <span>CHƠI LẠI</span> 🔄
+                    </button>
+                    <button id="btnSelectFromVictory" class="cartoon-btn btn-secondary">
+                        <span>CHỌN LEVEL</span> 🗺️
+                    </button>
+                    <button id="btnHomeFromVictory" class="cartoon-btn btn-home">
+                        <span>TRANG CHỦ</span> 🏠
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cụm nút điều khiển 4 hướng cảm ứng -->
             <div class="touch-controls" id="touchControls">
-                <button id="btnLeft" class="control-btn" aria-label="Sang trái">
-                    <span class="arrow-icon">◀</span>
-                    <span class="control-text">TRÁI</span>
-                </button>
-                <button id="btnRight" class="control-btn" aria-label="Sang phải">
-                    <span class="control-text">PHẢI</span>
-                    <span class="arrow-icon">▶</span>
-                </button>
+                <div class="touch-group left-group">
+                    <button id="btnLeft" class="control-btn" aria-label="Sang trái">◀</button>
+                    <button id="btnRight" class="control-btn" aria-label="Sang phải">▶</button>
+                </div>
+                <div class="touch-group right-group">
+                    <button id="btnDown" class="control-btn" aria-label="Lặn xuống">▼</button>
+                    <button id="btnUp" class="control-btn btn-jump" aria-label="Bơi lên / Nhảy">▲</button>
+                </div>
             </div>
 
             <!-- Màn hình Gacha (Gacha Screen) -->

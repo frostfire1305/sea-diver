@@ -12,28 +12,47 @@
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d");
 
+  const levelDisplayEl = document.getElementById("levelDisplay");
   const starCountEl = document.getElementById("starCount");
-  const depthCountEl = document.getElementById("depthCount");
+  const totalLevelStarsEl = document.getElementById("totalLevelStars");
   const btnSound = document.getElementById("btnSound");
   const btnPause = document.getElementById("btnPause");
 
   const startScreen = document.getElementById("startScreen");
+  const startProgressEl = document.getElementById("startProgress");
+  const levelSelectScreen = document.getElementById("levelSelectScreen");
+  const levelGridEl = document.getElementById("levelGrid");
+  const btnBackFromLevelSelect = document.getElementById(
+    "btnBackFromLevelSelect",
+  );
+
   const pauseScreen = document.getElementById("pauseScreen");
   const gameOverScreen = document.getElementById("gameOverScreen");
+  const victoryScreen = document.getElementById("victoryScreen");
 
   const btnPlay = document.getElementById("btnPlay");
   const btnResume = document.getElementById("btnResume");
   const btnRestartFromPause = document.getElementById("btnRestartFromPause");
-  const btnRestart = document.getElementById("btnRestart");
+  const btnHomeFromPause = document.getElementById("btnHomeFromPause");
 
-  const startMaxDepthEl = document.getElementById("startMaxDepth");
+  const btnRestart = document.getElementById("btnRestart");
+  const btnSelectFromOver = document.getElementById("btnSelectFromOver");
+  const btnHomeFromOver = document.getElementById("btnHomeFromOver");
+
+  const btnNextLevel = document.getElementById("btnNextLevel");
+  const btnReplayVictory = document.getElementById("btnReplayVictory");
+  const btnSelectFromVictory = document.getElementById("btnSelectFromVictory");
+  const btnHomeFromVictory = document.getElementById("btnHomeFromVictory");
+
   const finalStarsEl = document.getElementById("finalStars");
-  const finalDepthEl = document.getElementById("finalDepth");
-  const finalScoreEl = document.getElementById("finalScore");
-  const newBestBadge = document.getElementById("newBestBadge");
+  const finalLevelNameEl = document.getElementById("finalLevelName");
+  const victoryStarsEl = document.getElementById("victoryStars");
+  const victoryTimeEl = document.getElementById("victoryTime");
 
   const btnLeft = document.getElementById("btnLeft");
   const btnRight = document.getElementById("btnRight");
+  const btnUp = document.getElementById("btnUp");
+  const btnDown = document.getElementById("btnDown");
 
   // === TỰ ĐỘNG ĐIỀU CHỈNH KÍCH THƯỚC CANVAS THEO MÀN HÌNH TRÀN VIỀN ===
   function resizeCanvas() {
@@ -176,6 +195,28 @@
         gain.connect(this.ctx.destination);
         osc.start(now);
         osc.stop(now + 0.2);
+      });
+    }
+
+    // Giai điệu chiến thắng vượt level
+    playVictory() {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+
+      const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51]; // C5, E5, G5, C6, E6
+      notes.forEach((freq, i) => {
+        const now = this.ctx.currentTime + i * 0.1;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(freq, now);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.3);
       });
     }
   }
@@ -394,48 +435,65 @@
   // === CÁC BIẾN TRẠNG THÁI GAME ===
   const STATE = {
     START: "START",
+    LEVEL_SELECT: "LEVEL_SELECT",
     PLAYING: "PLAYING",
     PAUSED: "PAUSED",
     GAMEOVER: "GAMEOVER",
+    VICTORY: "VICTORY",
   };
 
   let currentState = STATE.START;
-  let score = 0;
+  let currentLevel = 1;
+  let unlockedLevel = parseInt(localStorage.getItem("sea_unlocked_level")) || 1;
+  let currentMap = null;
+  let mapStars = [];
   let starsCollected = 0;
-  let depthMeters = 0; // Độ sâu tính bằng mét (30s = 5m)
-  let playTimeMs = 0; // Thời gian chơi thực tế (mili-giây)
+  let playTimeMs = 0;
   let lastTimestamp = 0;
-
-  let gameSpeed = 2.4; // Tốc độ trôi cảnh vật đi lên
-  const baseSpeed = 2.4;
-  const maxSpeed = 5.2;
   let frameCount = 0;
+  const camera = { x: 0, y: 0 };
+  let particles = [];
 
-  let highScore = parseInt(localStorage.getItem("sea_high_score")) || 0;
-  let maxDepth = parseFloat(localStorage.getItem("sea_max_depth")) || 0;
+  function updateStartScreenInfo() {
+    if (startProgressEl) {
+      startProgressEl.textContent = `level ${unlockedLevel}/5`;
+    }
+  }
+  updateStartScreenInfo();
 
-  // Cập nhật điểm kỷ lục lúc mở đầu
-  startMaxDepthEl.textContent = maxDepth.toFixed(1);
-
-  // === HỆ THỐNG ĐIỀU KHIỂN (CONTROLS) ===
+  // === HỆ THỐNG ĐIỀU KHIỂN (CONTROLS - WASD & MŨI TÊN & CẢM ỨNG) ===
   const keys = {
     left: false,
     right: false,
+    up: false,
+    down: false,
   };
 
   window.addEventListener("keydown", (e) => {
     if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
       keys.left = true;
-      btnLeft.classList.add("active");
+      if (btnLeft) btnLeft.classList.add("active");
     }
     if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
       keys.right = true;
-      btnRight.classList.add("active");
+      if (btnRight) btnRight.classList.add("active");
     }
-    if (e.key === " " || e.key === "Spacebar") {
-      if (currentState === STATE.START) startGame();
-      else if (currentState === STATE.GAMEOVER) restartGame();
-      else if (currentState === STATE.PLAYING) pauseGame();
+    if (
+      e.key === "ArrowUp" ||
+      e.key === "w" ||
+      e.key === "W" ||
+      e.key === " " ||
+      e.key === "Spacebar"
+    ) {
+      keys.up = true;
+      if (btnUp) btnUp.classList.add("active");
+    }
+    if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
+      keys.down = true;
+      if (btnDown) btnDown.classList.add("active");
+    }
+    if (e.key === "Escape" || e.key === "p" || e.key === "P") {
+      if (currentState === STATE.PLAYING) pauseGame();
       else if (currentState === STATE.PAUSED) resumeGame();
     }
   });
@@ -443,25 +501,40 @@
   window.addEventListener("keyup", (e) => {
     if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
       keys.left = false;
-      btnLeft.classList.remove("active");
+      if (btnLeft) btnLeft.classList.remove("active");
     }
     if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
       keys.right = false;
-      btnRight.classList.remove("active");
+      if (btnRight) btnRight.classList.remove("active");
+    }
+    if (
+      e.key === "ArrowUp" ||
+      e.key === "w" ||
+      e.key === "W" ||
+      e.key === " " ||
+      e.key === "Spacebar"
+    ) {
+      keys.up = false;
+      if (btnUp) btnUp.classList.remove("active");
+    }
+    if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") {
+      keys.down = false;
+      if (btnDown) btnDown.classList.remove("active");
     }
   });
 
-  // Xử lý nút cảm ứng Trái / Phải
-  function setupTouchButton(btn, direction) {
+  // Xử lý nút cảm ứng 4 hướng (Trái, Phlevel, Lên, Xuống)
+  function setupTouchButton(btn, keyName) {
+    if (!btn) return;
     const start = (e) => {
       e.preventDefault();
       sound.init();
-      keys[direction] = true;
+      keys[keyName] = true;
       btn.classList.add("active");
     };
     const end = (e) => {
       e.preventDefault();
-      keys[direction] = false;
+      keys[keyName] = false;
       btn.classList.remove("active");
     };
 
@@ -475,117 +548,195 @@
 
   setupTouchButton(btnLeft, "left");
   setupTouchButton(btnRight, "right");
+  setupTouchButton(btnUp, "up");
+  setupTouchButton(btnDown, "down");
 
-  // Chạm trực tiếp vào nửa trái/phải màn hình Canvas
-  canvas.addEventListener(
-    "touchstart",
-    (e) => {
-      if (currentState !== STATE.PLAYING) return;
-      const rect = canvas.getBoundingClientRect();
-      for (let i = 0; i < e.touches.length; i++) {
-        const touchX = e.touches[i].clientX - rect.left;
-        if (touchX < rect.width / 2) {
-          keys.left = true;
-          btnLeft.classList.add("active");
-        } else {
-          keys.right = true;
-          btnRight.classList.add("active");
-        }
-      }
-    },
-    { passive: true },
-  );
-
-  canvas.addEventListener(
-    "touchend",
-    () => {
-      keys.left = false;
-      keys.right = false;
-      btnLeft.classList.remove("active");
-      btnRight.classList.remove("active");
-    },
-    { passive: true },
-  );
-
-  // === LỚP NHÂN VẬT: THỢ LẶN HOẠT HÌNH (DIVER) ===
+  // === LỚP NHÂN VẬT: THỢ LẶN HOẠT HÌNH (DIVER - PLATFORMER) ===
   class Diver {
     constructor() {
-      this.x = canvas.width / 2;
-      this.y = Math.min(140, canvas.height * 0.22);
-      this.width = 44;
-      this.height = 54;
+      this.x = 100;
+      this.y = 100;
+      this.width = 30;
+      this.height = 42;
+      this.halfW = 14;
+      this.halfH = 20;
       this.vx = 0;
-      this.speed = 5.6;
-      this.friction = 0.88;
+      this.vy = 0;
+      this.speed = 4.2;
+      this.facingLeft = false;
+      this.onGround = false;
       this.tilt = 0;
       this.flipperAngle = 0;
       this.bubbleTimer = 0;
-      this.radius = 18;
+      this.radius = 16;
     }
 
-    reset() {
-      this.x = canvas.width / 2;
-      this.y = Math.min(140, canvas.height * 0.22);
+    reset(startX = 100, startY = 100) {
+      this.x = startX;
+      this.y = startY;
       this.vx = 0;
+      this.vy = 0;
+      this.facingLeft = false;
+      this.onGround = false;
       this.tilt = 0;
       this.flipperAngle = 0;
       this.bubbleTimer = 0;
     }
 
-    update(deltaSec) {
-      const dt = deltaSec * 60;
+    checkAABB(x1, y1, w1, h1, x2, y2, w2, h2) {
+      return x1 < x2 + w2 && x1 + w1 > x2 && y1 < y2 + h2 && y1 + h1 > y2;
+    }
+
+    update(deltaSec, map) {
+      if (!map) return;
+      const dt = Math.min(deltaSec, 0.05) * 60;
+      const accel = 0.75;
+      const waterFrictionX = 0.88;
+      const waterFrictionY = 0.93;
+      const gravity = 0.16;
+
+      let isMoving = false;
 
       if (keys.left) {
-        this.vx -= 0.85 * dt;
-
-        if (Math.random() < 0.1 * dt) {
-          sound.playSwim();
-        }
+        this.vx -= accel * dt;
+        this.facingLeft = true;
+        isMoving = true;
+        if (Math.random() < 0.08 * dt) sound.playSwim();
       }
-
       if (keys.right) {
-        this.vx += 0.85 * dt;
+        this.vx += accel * dt;
+        this.facingLeft = false;
+        isMoving = true;
+        if (Math.random() < 0.08 * dt) sound.playSwim();
+      }
 
-        if (Math.random() < 0.1 * dt) {
+      if (keys.up) {
+        this.vy -= 0.65 * dt;
+        this.onGround = false;
+        isMoving = true;
+        if (Math.random() < 0.12 * dt) {
           sound.playSwim();
+          particles.push(
+            new BubbleParticle(
+              this.x + (this.facingLeft ? 10 : -10),
+              this.y + 16,
+              (Math.random() - 0.5) * 1.5,
+              1 + Math.random() * 2,
+              3 + Math.random() * 2.5,
+              "rgba(255, 255, 255, 0.7)",
+            ),
+          );
         }
       }
 
+      if (keys.down) {
+        this.vy += 0.5 * dt;
+        isMoving = true;
+      }
+
+      // Giới hạn vận tốc
       this.vx = Math.max(-this.speed, Math.min(this.speed, this.vx));
+      this.vy = Math.max(-6.0, Math.min(6.0, this.vy));
 
+      // Lực cản nước
+      this.vx *= Math.pow(waterFrictionX, dt);
+      this.vy *= Math.pow(waterFrictionY, dt);
+
+      if (isMoving || !this.onGround) {
+        this.flipperAngle += 0.22 * dt;
+      }
+
+      // Nghiêng người theo góc bơi
+      const targetTilt = Math.max(
+        -0.45,
+        Math.min(
+          0.45,
+          (this.vy / 6) * 0.35 + (this.facingLeft ? -this.vx : this.vx) * 0.05,
+        ),
+      );
+      this.tilt += (targetTilt - this.tilt) * 0.15 * dt;
+
+      // Va chạm 2 trục độc lập
+      // 1. Trục X
       this.x += this.vx * dt;
+      for (const p of map.platforms) {
+        if (
+          this.checkAABB(
+            this.x - this.halfW,
+            this.y - this.halfH,
+            this.halfW * 2,
+            this.halfH * 2,
+            p.x,
+            p.y,
+            p.width,
+            p.height,
+          )
+        ) {
+          if (this.vx > 0) {
+            this.x = p.x - this.halfW;
+            this.vx = 0;
+          } else if (this.vx < 0) {
+            this.x = p.x + p.width + this.halfW;
+            this.vx = 0;
+          }
+        }
+      }
 
-      // Friction không phụ thuộc FPS
-      this.vx *= Math.pow(this.friction, dt);
-
-      const targetTilt = (this.vx / this.speed) * 0.45;
-
-      this.tilt += (targetTilt - this.tilt) * (1 - Math.pow(1 - 0.18, dt));
-
-      const margin = 24;
-
-      if (this.x < margin) {
-        this.x = margin;
+      if (this.x < this.halfW) {
+        this.x = this.halfW;
         this.vx = 0;
-      } else if (this.x > canvas.width - margin) {
-        this.x = canvas.width - margin;
+      } else if (this.x > map.width - this.halfW) {
+        this.x = map.width - this.halfW;
         this.vx = 0;
       }
 
-      this.flipperAngle += 0.18 * dt;
+      // 2. Trục Y
+      this.onGround = false;
+      this.y += this.vy * dt;
+      for (const p of map.platforms) {
+        if (
+          this.checkAABB(
+            this.x - this.halfW,
+            this.y - this.halfH,
+            this.halfW * 2,
+            this.halfH * 2,
+            p.x,
+            p.y,
+            p.width,
+            p.height,
+          )
+        ) {
+          if (this.vy > 0) {
+            this.y = p.y - this.halfH;
+            this.vy = 0;
+            this.onGround = true;
+          } else if (this.vy < 0) {
+            this.y = p.y + p.height + this.halfH;
+            this.vy = 0;
+          }
+        }
+      }
 
+      if (this.y < this.halfH) {
+        this.y = this.halfH;
+        this.vy = 0;
+      } else if (this.y > map.height - this.halfH) {
+        this.y = map.height - this.halfH;
+        this.vy = 0;
+        this.onGround = true;
+      }
+
+      // Bọt nước thỉnh thoảng sủi ra từ ống thở
       this.bubbleTimer += dt;
-
-      if (this.bubbleTimer >= 7) {
-        this.bubbleTimer -= 7;
-
+      if (this.bubbleTimer >= 14) {
+        this.bubbleTimer = 0;
         particles.push(
           new BubbleParticle(
-            this.x - Math.sin(this.tilt) * 15,
+            this.x + (this.facingLeft ? -8 : 8),
             this.y - 12,
-            (Math.random() - 0.5) * 0.8,
-            -1.5 - Math.random() * 1.5,
-            2 + Math.random() * 3.5,
+            (Math.random() - 0.5) * 0.6,
+            -1.2 - Math.random() * 1.2,
+            2 + Math.random() * 3,
             "rgba(255, 255, 255, 0.75)",
           ),
         );
@@ -598,6 +749,9 @@
 
       ctx.save();
       ctx.translate(this.x, this.y);
+      if (this.facingLeft) {
+        ctx.scale(-1, 1);
+      }
       ctx.rotate(this.tilt);
 
       // 1. Chân vịt bơi (Flippers)
@@ -696,7 +850,7 @@
         ctx.fill();
         ctx.stroke();
 
-        // Sừng phải - tia sét bo cạnh
+        // Sừng phlevel - tia sét bo cạnh
         ctx.beginPath();
 
         ctx.moveTo(6, -2);
@@ -794,7 +948,7 @@
         ctx.fill();
         ctx.stroke();
 
-        // Đỉnh phải
+        // Đỉnh phlevel
         ctx.beginPath();
         ctx.moveTo(4, -8);
         ctx.lineTo(7.5, -19);
@@ -920,7 +1074,7 @@
         ctx.stroke();
         ctx.restore();
 
-        // Cánh thiên thần phải
+        // Cánh thiên thần phlevel
         ctx.save();
         ctx.translate(16, 4);
         ctx.rotate(0.3 - wingFlap);
@@ -948,7 +1102,7 @@
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
-        // Cánh nơ phải
+        // Cánh nơ phlevel
         ctx.beginPath();
         ctx.moveTo(0, -6);
         ctx.bezierCurveTo(6, -18, 18, -16, 14, -8);
@@ -1005,158 +1159,300 @@
 
   const diver = new Diver();
 
-  // === HỆ THỐNG CHƯỚNG NGẠI VẬT: TẢNG ĐÁ NGẦM (ROCKS) ===
-  class RockObstacle {
-    constructor(y, type = "gap") {
-      this.y = y;
-      this.height = 42;
-      this.passed = false;
-      this.type = type;
-      this.rocks = [];
-      this.generate();
-    }
-
-    generate() {
-      const minGap = Math.max(115, canvas.width * 0.28);
-      const gapWidth = minGap + Math.random() * 35;
-
-      if (this.type === "gap") {
-        const gapX = 30 + Math.random() * (canvas.width - gapWidth - 60);
-
-        this.rocks.push({
-          x: 0,
-          y: 0,
-          width: gapX,
-          height: this.height,
-          color: "#34495e",
-          accent: "#2c3e50",
-          side: "left",
-          decor: Math.random() > 0.4 ? "coral" : "seaweed",
-        });
-
-        this.rocks.push({
-          x: gapX + gapWidth,
-          y: 0,
-          width: canvas.width - (gapX + gapWidth),
-          height: this.height,
-          color: "#34495e",
-          accent: "#2c3e50",
-          side: "right",
-          decor: Math.random() > 0.4 ? "coral" : "seaweed",
-        });
-
-        if (Math.random() < 0.75) {
-          stars.push(new Star(gapX + gapWidth / 2, this.y + this.height / 2));
-        }
-      } else if (this.type === "center") {
-        const rockWidth =
-          Math.min(130, canvas.width * 0.32) + Math.random() * 30;
-        const rockX =
-          (canvas.width - rockWidth) / 2 + (Math.random() * 40 - 20);
-
-        this.rocks.push({
-          x: rockX,
-          y: 0,
-          width: rockWidth,
-          height: this.height * 1.2,
-          color: "#2f3542",
-          accent: "#1e272e",
-          side: "center",
-          decor: "coral",
-        });
-
-        const starX =
-          Math.random() > 0.5
-            ? rockX / 2
-            : (rockX + rockWidth + canvas.width) / 2;
-        stars.push(new Star(starX, this.y + this.height / 2));
-      }
-    }
-
-    update(deltaSec) {
-      const dt = deltaSec * 60;
-      this.y -= gameSpeed * dt;
-    }
-
-    draw() {
-      this.rocks.forEach((rock) => {
-        const rx = rock.x;
-        const ry = this.y + rock.y;
-        const rw = rock.width;
-        const rh = rock.height;
-
-        ctx.save();
-        ctx.fillStyle = rock.color;
-        ctx.strokeStyle = "#130f40";
-        ctx.lineWidth = 3.5;
-
-        ctx.beginPath();
-        ctx.roundRect(rx, ry, rw, rh, [12, 12, 12, 12]);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
-        ctx.beginPath();
-        ctx.roundRect(rx + 4, ry + 4, rw - 8, rh * 0.35, 6);
-        ctx.fill();
-
-        if (rock.decor === "coral") {
-          ctx.fillStyle = "#ff4757";
-          ctx.beginPath();
-          const decorX =
-            rx +
-            (rock.side === "right"
-              ? 14
-              : rock.side === "left"
-                ? rw - 20
-                : rw / 2);
-          ctx.arc(decorX, ry - 3, 7, 0, Math.PI * 2);
-          ctx.arc(decorX + 6, ry - 7, 5, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = "#130f40";
-          ctx.lineWidth = 2;
-          ctx.stroke();
-        } else if (rock.decor === "seaweed") {
-          ctx.fillStyle = "#2ed573";
-          const decorX =
-            rx +
-            (rock.side === "right"
-              ? 18
-              : rock.side === "left"
-                ? rw - 24
-                : rw / 2);
-          ctx.beginPath();
-          ctx.ellipse(decorX, ry - 6, 4, 12, 0.2, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        ctx.restore();
-      });
-    }
-
-    checkCollision(diver) {
-      for (let rock of this.rocks) {
-        const rx = rock.x;
-        const ry = this.y + rock.y;
-        const rw = rock.width;
-        const rh = rock.height;
-
-        const closestX = Math.max(rx, Math.min(diver.x, rx + rw));
-        const closestY = Math.max(ry, Math.min(diver.y, ry + rh));
-
-        const distX = diver.x - closestX;
-        const distY = diver.y - closestY;
-        const distanceSquared = distX * distX + distY * distY;
-
-        if (distanceSquared < diver.radius * 0.85 * (diver.radius * 0.85)) {
-          return true;
-        }
-      }
-      return false;
-    }
-  }
-
-  let obstacles = [];
+  // === 5 BẢN ĐỒ MÀN CHƠI (5 PLATFORMER MAPS) ===
+  const MAPS = [
+    {
+      id: 1,
+      width: 800,
+      height: 1000,
+      theme: {
+        topColor: "#0b5299",
+        bottomColor: "#052247",
+        sunRays: true,
+      },
+      playerStart: { x: 100, y: 140 },
+      goal: { x: 680, y: 880, width: 46, height: 42, title: "Rương San Hô" },
+      platforms: [
+        { x: 50, y: 200, width: 160, height: 26, type: "coral" },
+        { x: 270, y: 270, width: 150, height: 26, type: "coral" },
+        { x: 480, y: 340, width: 160, height: 26, type: "coral" },
+        { x: 630, y: 440, width: 140, height: 26, type: "coral" },
+        { x: 420, y: 540, width: 160, height: 26, type: "coral" },
+        { x: 180, y: 620, width: 170, height: 26, type: "coral" },
+        { x: 70, y: 740, width: 160, height: 26, type: "coral" },
+        { x: 280, y: 820, width: 150, height: 26, type: "coral" },
+        { x: 480, y: 900, width: 160, height: 26, type: "coral" },
+        { x: 0, y: 960, width: 800, height: 40, type: "coral" },
+      ],
+      hazards: [
+        { type: "urchin", x: 345, y: 252, radius: 14 },
+        { type: "urchin", x: 500, y: 522, radius: 14 },
+        { type: "urchin", x: 150, y: 722, radius: 14 },
+      ],
+      stars: [
+        { x: 130, y: 150 },
+        { x: 345, y: 210 },
+        { x: 560, y: 280 },
+        { x: 265, y: 560 },
+        { x: 560, y: 840 },
+      ],
+      decorations: [
+        { type: "seaweed", x: 70, y: 190 },
+        { type: "coral_bush", x: 180, y: 190 },
+        { type: "seaweed", x: 580, y: 330 },
+        { type: "coral_bush", x: 220, y: 610 },
+        { type: "seaweed", x: 520, y: 890 },
+      ],
+    },
+    {
+      id: 2,
+      width: 950,
+      height: 1100,
+      theme: {
+        topColor: "#1a0e38",
+        bottomColor: "#080417",
+        sunRays: false,
+      },
+      playerStart: { x: 100, y: 160 },
+      goal: { x: 830, y: 230, width: 46, height: 42, title: "Cổng Ngọc Trai" },
+      platforms: [
+        { x: 50, y: 220, width: 160, height: 26, type: "crystal" },
+        { x: 250, y: 330, width: 150, height: 26, type: "crystal" },
+        { x: 70, y: 460, width: 150, height: 26, type: "crystal" },
+        { x: 260, y: 580, width: 160, height: 26, type: "crystal" },
+        { x: 100, y: 710, width: 160, height: 26, type: "crystal" },
+        { x: 300, y: 840, width: 160, height: 26, type: "crystal" },
+        { x: 500, y: 740, width: 160, height: 26, type: "crystal" },
+        { x: 680, y: 620, width: 160, height: 26, type: "crystal" },
+        { x: 500, y: 480, width: 160, height: 26, type: "crystal" },
+        { x: 680, y: 360, width: 160, height: 26, type: "crystal" },
+        { x: 800, y: 290, width: 140, height: 26, type: "crystal" },
+        { x: 0, y: 1050, width: 950, height: 50, type: "crystal" },
+      ],
+      hazards: [
+        { type: "urchin", x: 325, y: 312, radius: 14 },
+        { type: "urchin", x: 145, y: 442, radius: 14 },
+        { type: "urchin", x: 580, y: 722, radius: 14 },
+        { type: "urchin", x: 760, y: 602, radius: 14 },
+        { type: "urchin", x: 580, y: 462, radius: 14 },
+      ],
+      stars: [
+        { x: 130, y: 160 },
+        { x: 145, y: 400 },
+        { x: 340, y: 520 },
+        { x: 380, y: 780 },
+        { x: 760, y: 560 },
+        { x: 760, y: 300 },
+      ],
+      decorations: [
+        { type: "crystal_cluster", x: 180, y: 210 },
+        { type: "crystal_cluster", x: 380, y: 320 },
+        { type: "crystal_cluster", x: 630, y: 610 },
+        { type: "crystal_cluster", x: 820, y: 280 },
+      ],
+    },
+    {
+      id: 3,
+      width: 900,
+      height: 1200,
+      theme: {
+        topColor: "#0b3336",
+        bottomColor: "#031417",
+        sunRays: true,
+      },
+      playerStart: { x: 120, y: 180 },
+      goal: {
+        x: 740,
+        y: 990,
+        width: 46,
+        height: 42,
+        title: "Rương Thuyền Trưởng",
+      },
+      platforms: [
+        { x: 60, y: 240, width: 170, height: 26, type: "wood" },
+        { x: 280, y: 340, width: 160, height: 26, type: "wood" },
+        { x: 490, y: 440, width: 160, height: 26, type: "wood" },
+        { x: 170, y: 560, width: 220, height: 28, type: "wood" },
+        { x: 470, y: 660, width: 220, height: 28, type: "wood" },
+        { x: 140, y: 780, width: 240, height: 28, type: "wood" },
+        { x: 450, y: 890, width: 220, height: 28, type: "wood" },
+        { x: 680, y: 1050, width: 200, height: 30, type: "wood" },
+        { x: 0, y: 1150, width: 900, height: 50, type: "wood" },
+      ],
+      hazards: [
+        {
+          type: "jellyfish",
+          x: 250,
+          y: 450,
+          baseY: 450,
+          rangeY: 50,
+          speed: 0.04,
+          radius: 15,
+          seed: 1,
+        },
+        {
+          type: "jellyfish",
+          x: 450,
+          y: 550,
+          baseY: 550,
+          rangeY: 60,
+          speed: 0.05,
+          radius: 15,
+          seed: 2,
+        },
+        {
+          type: "jellyfish",
+          x: 400,
+          y: 730,
+          baseY: 730,
+          rangeY: 50,
+          speed: 0.04,
+          radius: 15,
+          seed: 3,
+        },
+        { type: "urchin", x: 280, y: 542, radius: 14 },
+        { type: "urchin", x: 580, y: 642, radius: 14 },
+      ],
+      stars: [
+        { x: 140, y: 180 },
+        { x: 360, y: 280 },
+        { x: 570, y: 380 },
+        { x: 220, y: 500 },
+        { x: 580, y: 600 },
+        { x: 260, y: 720 },
+        { x: 560, y: 830 },
+      ],
+      decorations: [
+        { type: "seaweed", x: 190, y: 550 },
+        { type: "seaweed", x: 520, y: 650 },
+        { type: "seaweed", x: 720, y: 1040 },
+      ],
+    },
+    {
+      id: 4,
+      width: 850,
+      height: 1250,
+      theme: {
+        topColor: "#2a0808",
+        bottomColor: "#100202",
+        sunRays: false,
+      },
+      playerStart: { x: 120, y: 1120 },
+      goal: { x: 670, y: 150, width: 46, height: 42, title: "Trái Tim Magma" },
+      platforms: [
+        { x: 0, y: 1190, width: 850, height: 60, type: "volcano" },
+        { x: 240, y: 1080, width: 160, height: 26, type: "volcano" },
+        { x: 470, y: 980, width: 160, height: 26, type: "volcano" },
+        { x: 650, y: 870, width: 150, height: 26, type: "volcano" },
+        { x: 410, y: 770, width: 170, height: 26, type: "volcano" },
+        { x: 150, y: 670, width: 160, height: 26, type: "volcano" },
+        { x: 370, y: 570, width: 160, height: 26, type: "volcano" },
+        { x: 600, y: 470, width: 160, height: 26, type: "volcano" },
+        { x: 350, y: 350, width: 170, height: 26, type: "volcano" },
+        { x: 110, y: 250, width: 170, height: 26, type: "volcano" },
+        { x: 590, y: 210, width: 220, height: 28, type: "volcano" },
+      ],
+      hazards: [
+        { type: "urchin", x: 320, y: 1062, radius: 14 },
+        { type: "urchin", x: 550, y: 962, radius: 14 },
+        { type: "urchin", x: 495, y: 752, radius: 14 },
+        {
+          type: "jellyfish",
+          x: 520,
+          y: 640,
+          baseY: 640,
+          rangeY: 45,
+          speed: 0.05,
+          radius: 15,
+          seed: 4,
+        },
+        { type: "urchin", x: 680, y: 452, radius: 14 },
+        { type: "urchin", x: 435, y: 332, radius: 14 },
+      ],
+      stars: [
+        { x: 120, y: 1060 },
+        { x: 320, y: 1020 },
+        { x: 550, y: 920 },
+        { x: 725, y: 810 },
+        { x: 230, y: 610 },
+        { x: 450, y: 510 },
+        { x: 680, y: 410 },
+        { x: 195, y: 190 },
+      ],
+      decorations: [],
+    },
+    {
+      id: 5,
+      width: 1050,
+      height: 1300,
+      theme: {
+        topColor: "#003b46",
+        bottomColor: "#001b22",
+        sunRays: true,
+      },
+      playerStart: { x: 120, y: 180 },
+      goal: {
+        x: 890,
+        y: 1130,
+        width: 46,
+        height: 42,
+        title: "Vương Miện Poseidon",
+      },
+      platforms: [
+        { x: 60, y: 240, width: 180, height: 30, type: "ancient" },
+        { x: 290, y: 340, width: 150, height: 26, type: "ancient" },
+        { x: 500, y: 440, width: 160, height: 26, type: "ancient" },
+        { x: 730, y: 530, width: 160, height: 26, type: "ancient" },
+        { x: 480, y: 650, width: 180, height: 28, type: "ancient" },
+        { x: 200, y: 760, width: 200, height: 28, type: "ancient" },
+        { x: 450, y: 870, width: 180, height: 28, type: "ancient" },
+        { x: 720, y: 970, width: 190, height: 28, type: "ancient" },
+        { x: 480, y: 1080, width: 190, height: 28, type: "ancient" },
+        { x: 800, y: 1190, width: 220, height: 32, type: "ancient" },
+        { x: 0, y: 1260, width: 1050, height: 40, type: "ancient" },
+      ],
+      hazards: [
+        { type: "urchin", x: 365, y: 322, radius: 14 },
+        { type: "urchin", x: 580, y: 422, radius: 14 },
+        {
+          type: "jellyfish",
+          x: 350,
+          y: 580,
+          baseY: 580,
+          rangeY: 55,
+          speed: 0.05,
+          radius: 15,
+          seed: 5,
+        },
+        { type: "urchin", x: 570, y: 632, radius: 14 },
+        {
+          type: "jellyfish",
+          x: 650,
+          y: 780,
+          baseY: 780,
+          rangeY: 50,
+          speed: 0.04,
+          radius: 15,
+          seed: 6,
+        },
+        { type: "urchin", x: 540, y: 852, radius: 14 },
+        { type: "urchin", x: 815, y: 952, radius: 14 },
+      ],
+      stars: [
+        { x: 150, y: 180 },
+        { x: 365, y: 280 },
+        { x: 580, y: 380 },
+        { x: 810, y: 470 },
+        { x: 570, y: 590 },
+        { x: 300, y: 700 },
+        { x: 540, y: 810 },
+        { x: 815, y: 910 },
+        { x: 575, y: 1020 },
+        { x: 850, y: 1130 },
+      ],
+      decorations: [],
+    },
+  ];
 
   // === HỆ THỐNG ĐIỂM THƯỞNG: NGÔI SAO VÀNG (STARS) ===
   class Star {
@@ -1171,8 +1467,6 @@
 
     update(deltaSec) {
       const dt = deltaSec * 60;
-
-      this.y -= gameSpeed * dt;
       this.angle += 0.04 * dt;
       this.sparklePhase += 0.08 * dt;
     }
@@ -1245,8 +1539,6 @@
     }
   }
 
-  let stars = [];
-
   // === HỆ THỐNG HIỆU ỨNG HẠT (PARTICLES) ===
   class BubbleParticle {
     constructor(x, y, vx, vy, size, color) {
@@ -1307,11 +1599,9 @@
 
     update(deltaSec) {
       const dt = deltaSec * 60;
-
       this.x += this.vx * dt;
       this.y += this.vy * dt;
-
-      this.life -= dt;
+      this.life -= this.decay;
     }
 
     draw() {
@@ -1325,13 +1615,11 @@
     }
   }
 
-  let particles = [];
   const ambientBubbles = [];
-
   for (let i = 0; i < 28; i++) {
     ambientBubbles.push({
-      x: Math.random() * (canvas.width || 400),
-      y: Math.random() * (canvas.height || 600),
+      x: Math.random() * 480,
+      y: Math.random() * 700,
       size: 2 + Math.random() * 5,
       speed: 0.6 + Math.random() * 1.2,
       wobbleSpeed: 0.02 + Math.random() * 0.04,
@@ -1339,84 +1627,302 @@
     });
   }
 
-  // === QUẢN LÝ SINH CHƯỚNG NGẠI VẬT ===
-  let obstacleTimer = 0;
-  const obstacleInterval = 110;
+  // === HÀM VẼ BỆ ĐỠ (PLATFORMS) ===
+  function drawPlatform(p) {
+    ctx.save();
+    ctx.strokeStyle = "#130f40";
+    ctx.lineWidth = 3;
 
-  function handleObstacles(deltaSec) {
-    obstacleTimer += deltaSec * 60;
+    if (p.type === "coral") {
+      const grad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.height);
+      grad.addColorStop(0, "#ff6b81");
+      grad.addColorStop(1, "#c0392b");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(p.x, p.y, p.width, p.height, [8, 8, 4, 4]);
+      ctx.fill();
+      ctx.stroke();
 
-    if (obstacleTimer >= obstacleInterval) {
-      obstacleTimer = 0;
-
-      const type = Math.random() < 0.25 ? "center" : "gap";
-
-      obstacles.push(new RockObstacle(canvas.height + 40, type));
-    }
-
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-      const obs = obstacles[i];
-
-      obs.update(deltaSec);
-
-      if (obs.checkCollision(diver)) {
-        gameOver();
-        return;
+      // Mũ san hô trên nóc bệ
+      ctx.fillStyle = "#ff4757";
+      for (let bx = p.x + 8; bx < p.x + p.width - 6; bx += 14) {
+        ctx.beginPath();
+        ctx.arc(bx, p.y, 4, Math.PI, 0);
+        ctx.fill();
       }
+    } else if (p.type === "crystal") {
+      const grad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.height);
+      grad.addColorStop(0, "#574b90");
+      grad.addColorStop(1, "#303952");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(p.x, p.y, p.width, p.height, 6);
+      ctx.fill();
+      ctx.stroke();
 
-      if (obs.y < -100) {
-        obstacles.splice(i, 1);
-      }
+      // Viền tinh thể phát sáng tím cyan
+      ctx.strokeStyle = "#00d2d3";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(p.x + 4, p.y + 4);
+      ctx.lineTo(p.x + p.width - 4, p.y + 4);
+      ctx.stroke();
+    } else if (p.type === "wood") {
+      const grad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.height);
+      grad.addColorStop(0, "#964b00");
+      grad.addColorStop(1, "#542700");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(p.x, p.y, p.width, p.height, 5);
+      ctx.fill();
+      ctx.stroke();
+
+      // Vân gỗ và đinh đồng
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.18)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x + 6, p.y + p.height / 2);
+      ctx.lineTo(p.x + p.width - 6, p.y + p.height / 2);
+      ctx.stroke();
+
+      ctx.fillStyle = "#ffd32a";
+      ctx.beginPath();
+      ctx.arc(p.x + 8, p.y + 6, 2, 0, Math.PI * 2);
+      ctx.arc(p.x + p.width - 8, p.y + 6, 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (p.type === "volcano") {
+      const grad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.height);
+      grad.addColorStop(0, "#2f3542");
+      grad.addColorStop(1, "#1e272e");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(p.x, p.y, p.width, p.height, 6);
+      ctx.fill();
+      ctx.stroke();
+
+      // Vệt dung nham nóng đỏ
+      ctx.strokeStyle = "#ff4757";
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(p.x + 10, p.y + p.height * 0.4);
+      ctx.lineTo(p.x + p.width * 0.4, p.y + p.height * 0.7);
+      ctx.lineTo(p.x + p.width * 0.8, p.y + p.height * 0.3);
+      ctx.stroke();
+    } else if (p.type === "ancient") {
+      const grad = ctx.createLinearGradient(p.x, p.y, p.x, p.y + p.height);
+      grad.addColorStop(0, "#00a8ff");
+      grad.addColorStop(1, "#0078a8");
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.roundRect(p.x, p.y, p.width, p.height, 8);
+      ctx.fill();
+      ctx.stroke();
+
+      // Viền chạm khắc vàng cổ Atlantis
+      ctx.strokeStyle = "#f1c40f";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(p.x + 4, p.y + 4, p.width - 8, p.height - 8);
     }
+    ctx.restore();
   }
 
-  function handleStars(deltaSec) {
-    for (let i = stars.length - 1; i >= 0; i--) {
-      const star = stars[i];
-
-      star.update(deltaSec);
-
-      if (star.checkCollect(diver)) {
-        starsCollected++;
-        score += 50;
-        gacha.addStars(1); // Cộng 1 sao vào ví gacha
-
-        starCountEl.textContent = starsCollected;
-
-        sound.playStar();
-
-        for (let k = 0; k < 12; k++) {
-          particles.push(new SparkleParticle(star.x, star.y));
-        }
-
-        stars.splice(i, 1);
-        continue;
+  // === HÀM VẼ VÀ CẬP NHẬT CẠM BẪY (HAZARDS) ===
+  function updateHazards(map, dt) {
+    if (!map.hazards) return;
+    map.hazards.forEach((h) => {
+      if (h.type === "jellyfish") {
+        h.y =
+          h.baseY + Math.sin(frameCount * h.speed + (h.seed || 0)) * h.rangeY;
       }
-
-      if (star.y < -50 || star.collected) {
-        stars.splice(i, 1);
-      }
-    }
+    });
   }
 
-  function handleParticles(deltaSec) {
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
+  function drawHazard(h) {
+    ctx.save();
+    if (h.type === "urchin") {
+      ctx.translate(h.x, h.y);
+      const pulse = Math.sin(frameCount * 0.08) * 2;
+      ctx.fillStyle = "#2f3640";
+      ctx.strokeStyle = "#130f40";
+      ctx.lineWidth = 2;
 
-      p.update(deltaSec);
+      // 12 gai nhọn xoay tròn
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+        const sx = Math.cos(a) * (h.radius + 6 + pulse);
+        const sy = Math.sin(a) * (h.radius + 6 + pulse);
+        const b1x = Math.cos(a - 0.22) * (h.radius * 0.7);
+        const b1y = Math.sin(a - 0.22) * (h.radius * 0.7);
+        const b2x = Math.cos(a + 0.22) * (h.radius * 0.7);
+        const b2y = Math.sin(a + 0.22) * (h.radius * 0.7);
+        ctx.beginPath();
+        ctx.moveTo(b1x, b1y);
+        ctx.lineTo(sx, sy);
+        ctx.lineTo(b2x, b2y);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
 
-      if (p.life <= 0) {
-        particles.splice(i, 1);
+      ctx.beginPath();
+      ctx.arc(0, 0, h.radius, 0, Math.PI * 2);
+      ctx.fillStyle = "#353b48";
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(0, 0, 4, 0, Math.PI * 2);
+      ctx.fillStyle = "#ff4757";
+      ctx.fill();
+    } else if (h.type === "jellyfish") {
+      ctx.translate(h.x, h.y);
+      const bob = Math.sin(frameCount * 0.06 + (h.seed || 0)) * 3;
+      ctx.fillStyle = "rgba(255, 107, 129, 0.75)";
+      ctx.strokeStyle = "#ff4757";
+      ctx.lineWidth = 2;
+
+      // Chuông sứa
+      ctx.beginPath();
+      ctx.arc(0, bob, h.radius, Math.PI, 0);
+      ctx.quadraticCurveTo(h.radius, bob + 4, 0, bob + 3);
+      ctx.quadraticCurveTo(-h.radius, bob + 4, -h.radius, bob);
+      ctx.fill();
+      ctx.stroke();
+
+      // Xúc tu sứa
+      ctx.strokeStyle = "rgba(255, 107, 129, 0.85)";
+      ctx.lineWidth = 2;
+      for (let t = -h.radius * 0.6; t <= h.radius * 0.6; t += 7) {
+        const wave = Math.sin(frameCount * 0.1 + t) * 3;
+        ctx.beginPath();
+        ctx.moveTo(t, bob + 3);
+        ctx.quadraticCurveTo(t + wave, bob + 14, t, bob + 24);
+        ctx.stroke();
       }
     }
+    ctx.restore();
   }
 
-  // === HÀM VẼ HÌNH NỀN BIỂN ĐẠI DƯƠNG (OCEAN BACKGROUND) ===
-  function drawBackground() {
-    // Màu nước biển chuyển màu theo độ sâu thực tế (càng sâu càng xanh thẫm)
-    const depthRatio = Math.min(depthMeters / 25, 1);
-    const topColor = `rgb(${Math.floor(11 - depthRatio * 8)}, ${Math.floor(79 - depthRatio * 45)}, ${Math.floor(138 - depthRatio * 60)})`;
-    const bottomColor = `rgb(${Math.floor(9 - depthRatio * 6)}, ${Math.floor(32 - depthRatio * 20)}, ${Math.floor(63 - depthRatio * 35)})`;
+  function checkHazardCollision(diver, h) {
+    if (h.type === "urchin" || h.type === "jellyfish") {
+      const dx = diver.x - h.x;
+      const dy = diver.y - h.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      return dist < diver.radius + h.radius - 2;
+    }
+    return false;
+  }
+
+  // === HÀM VẼ RƯƠNG KHO BÁU ĐÍCH (GOAL) ===
+  function drawGoal(goal) {
+    if (!goal) return;
+    const pulse = Math.sin(frameCount * 0.08) * 5;
+    ctx.save();
+    ctx.translate(goal.x + goal.width / 2, goal.y + goal.height / 2);
+
+    // Vòng hào quang phát sáng
+    const grad = ctx.createRadialGradient(0, 0, 8, 0, 0, 36 + pulse);
+    grad.addColorStop(0, "rgba(255, 221, 89, 0.65)");
+    grad.addColorStop(1, "rgba(255, 221, 89, 0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(0, 0, 36 + pulse, 0, Math.PI * 2);
+    ctx.fill();
+
+    const hw = goal.width / 2;
+    const hh = goal.height / 2;
+
+    // Thân rương vàng
+    ctx.fillStyle = "#f39c12";
+    ctx.strokeStyle = "#130f40";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.roundRect(-hw, -hh + 10, goal.width, goal.height - 10, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    // Nắp rương hơi hé mở
+    ctx.fillStyle = "#f1c40f";
+    ctx.beginPath();
+    ctx.roundRect(-hw - 2, -hh, goal.width + 4, 16, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    // Dlevel kim loại nạm rương
+    ctx.fillStyle = "#e67e22";
+    ctx.fillRect(-hw + 8, -hh + 10, 6, goal.height - 10);
+    ctx.fillRect(hw - 14, -hh + 10, 6, goal.height - 10);
+
+    // Lỗ khóa rương
+    ctx.fillStyle = "#130f40";
+    ctx.beginPath();
+    ctx.arc(0, 4, 3.5, 0, Math.PI * 2);
+    ctx.rect(-1.5, 4, 3, 5);
+    ctx.fill();
+
+    // Chữ ĐÍCH trên đầu rương
+    ctx.font = "bold 13px Fredoka, sans-serif";
+    ctx.fillStyle = "#ffdd59";
+    ctx.textAlign = "center";
+    ctx.strokeStyle = "#130f40";
+    ctx.lineWidth = 3;
+    ctx.strokeText("🏆 ĐÍCH", 0, -hh - 8);
+    ctx.fillText("🏆 ĐÍCH", 0, -hh - 8);
+
+    ctx.restore();
+  }
+
+  // === HÀM VẼ TRANG TRÍ MAP (DECORATIONS) ===
+  function drawMapDecorations(map) {
+    if (!map.decorations) return;
+    ctx.save();
+    map.decorations.forEach((d) => {
+      if (d.type === "seaweed") {
+        ctx.fillStyle = "#2ed573";
+        ctx.strokeStyle = "#130f40";
+        ctx.lineWidth = 1.5;
+        const wave = Math.sin(frameCount * 0.05 + d.x) * 4;
+        ctx.beginPath();
+        ctx.ellipse(d.x + wave, d.y - 12, 5, 14, wave * 0.05, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      } else if (d.type === "coral_bush") {
+        ctx.fillStyle = "#ff4757";
+        ctx.beginPath();
+        ctx.arc(d.x, d.y - 6, 7, 0, Math.PI * 2);
+        ctx.arc(d.x + 7, d.y - 10, 5, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (d.type === "crystal_cluster") {
+        ctx.fillStyle = "#00d2d3";
+        ctx.beginPath();
+        ctx.moveTo(d.x, d.y);
+        ctx.lineTo(d.x + 4, d.y - 14);
+        ctx.lineTo(d.x + 8, d.y);
+        ctx.fill();
+      }
+    });
+    ctx.restore();
+  }
+
+  // === CẬP NHẬT CAMERA THEO DÕI NHÂN VẬT ===
+  function updateCamera(map) {
+    if (!map) return;
+    const targetX = diver.x - canvas.width / 2;
+    const targetY = diver.y - canvas.height / 2;
+
+    const maxX = Math.max(0, map.width - canvas.width);
+    const maxY = Math.max(0, map.height - canvas.height);
+
+    camera.x += (Math.max(0, Math.min(maxX, targetX)) - camera.x) * 0.15;
+    camera.y += (Math.max(0, Math.min(maxY, targetY)) - camera.y) * 0.15;
+
+    camera.x = Math.max(0, Math.min(maxX, camera.x));
+    camera.y = Math.max(0, Math.min(maxY, camera.y));
+  }
+
+  // === HÀM VẼ NỀN BIỂN THEO MAP (OCEAN BACKGROUND) ===
+  function drawBackground(map) {
+    const topColor = map ? map.theme.topColor : "#0b5299";
+    const bottomColor = map ? map.theme.bottomColor : "#052247";
 
     const oceanGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
     oceanGrad.addColorStop(0, topColor);
@@ -1425,35 +1931,35 @@
     ctx.fillStyle = oceanGrad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Các tia sáng mặt trời xuyên biển (Sun Rays / Caustics)
-    ctx.save();
-    ctx.globalAlpha = 0.08 - depthRatio * 0.05;
-    ctx.fillStyle = "#ffffff";
-
-    for (let i = 0; i < 4; i++) {
-      const rayX =
-        (canvas.width / 4) * i + Math.sin(frameCount * 0.02 + i) * 30;
-      ctx.beginPath();
-      ctx.moveTo(rayX - 20, 0);
-      ctx.lineTo(rayX + 40, 0);
-      ctx.lineTo(rayX + 110, canvas.height);
-      ctx.lineTo(rayX - 60, canvas.height);
-      ctx.closePath();
-      ctx.fill();
+    // Tia sáng mặt trời xuyên biển (nếu map có nắng)
+    if (map && map.theme.sunRays) {
+      ctx.save();
+      ctx.globalAlpha = 0.08;
+      ctx.fillStyle = "#ffffff";
+      for (let i = 0; i < 4; i++) {
+        const rayX =
+          (canvas.width / 4) * i + Math.sin(frameCount * 0.02 + i) * 30;
+        ctx.beginPath();
+        ctx.moveTo(rayX - 20, 0);
+        ctx.lineTo(rayX + 40, 0);
+        ctx.lineTo(rayX + 110, canvas.height);
+        ctx.lineTo(rayX - 60, canvas.height);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
     }
-    ctx.restore();
 
-    // Bọt nước nền trôi lơ lửng
+    // Bọt nước trôi lơ lửng trên màn hình
     ctx.save();
     ambientBubbles.forEach((b) => {
       b.wobble += b.wobbleSpeed;
-      b.y -= b.speed + (currentState === STATE.PLAYING ? gameSpeed * 0.4 : 0.5);
+      b.y -= b.speed;
       if (b.y < -20) {
         b.y = canvas.height + 20;
         b.x = Math.random() * canvas.width;
       }
-
-      const bx = b.x + Math.sin(b.wobble) * 8;
+      const bx = b.x + Math.sin(b.wobble) * 6;
       ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
       ctx.beginPath();
       ctx.arc(bx, b.y, b.size, 0, Math.PI * 2);
@@ -1462,76 +1968,202 @@
     ctx.restore();
   }
 
+  // === XỬ LÝ HẠT HIỆU ỨNG (PARTICLES) ===
+  function handleParticles(deltaSec) {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.update(deltaSec);
+      if (p.life <= 0) {
+        particles.splice(i, 1);
+      }
+    }
+  }
+
   // === VÒNG LẶP CHÍNH CỦA TRÒ CHƠI (MAIN GAME LOOP) ===
   function gameLoop(timestamp) {
     frameCount++;
 
     if (!lastTimestamp) lastTimestamp = timestamp;
-
-    // Delta time tính theo giây
     const deltaMs = Math.min(timestamp - lastTimestamp, 100);
     const deltaSec = deltaMs / 1000;
-
     lastTimestamp = timestamp;
 
-    drawBackground();
+    drawBackground(currentMap);
 
-    if (currentState === STATE.PLAYING) {
+    if (currentState === STATE.PLAYING && currentMap) {
       playTimeMs += deltaMs;
 
-      const playSeconds = playTimeMs / 1000;
+      // Cập nhật nhân vật & cạm bẫy
+      diver.update(deltaSec, currentMap);
+      updateHazards(currentMap, deltaSec);
+      updateCamera(currentMap);
 
-      depthMeters = (playSeconds / 30) * 5;
-      depthCountEl.textContent = depthMeters.toFixed(1);
+      // Kiểm tra va chạm cạm bẫy
+      if (currentMap.hazards) {
+        for (const h of currentMap.hazards) {
+          if (checkHazardCollision(diver, h)) {
+            gameOver();
+            break;
+          }
+        }
+      }
 
-      gameSpeed = Math.min(maxSpeed, baseSpeed + (playSeconds / 90) * 1.2);
+      // Kiểm tra nhặt sao
+      if (currentState === STATE.PLAYING) {
+        for (let i = mapStars.length - 1; i >= 0; i--) {
+          const s = mapStars[i];
+          s.update(deltaSec);
+          if (s.checkCollect(diver)) {
+            starsCollected++;
+            gacha.addStars(1);
+            sound.playStar();
+            starCountEl.textContent = starsCollected;
+            for (let k = 0; k < 12; k++) {
+              particles.push(new SparkleParticle(s.x, s.y));
+            }
+          }
+        }
 
-      diver.update(deltaSec);
-      handleObstacles(deltaSec);
-      handleStars(deltaSec);
+        // Kiểm tra đến đích (Goal)
+        if (
+          currentMap.goal &&
+          diver.checkAABB(
+            diver.x - diver.halfW,
+            diver.y - diver.halfH,
+            diver.halfW * 2,
+            diver.halfH * 2,
+            currentMap.goal.x,
+            currentMap.goal.y,
+            currentMap.goal.width,
+            currentMap.goal.height,
+          )
+        ) {
+          levelWon();
+        }
+      }
+
       handleParticles(deltaSec);
-    } else if (currentState === STATE.START || currentState === STATE.PAUSED) {
-      diver.y =
-        Math.min(140, canvas.height * 0.22) + Math.sin(frameCount * 0.05) * 8;
 
-      diver.flipperAngle += 0.1;
+      // Vẽ toàn bộ thế giới game trong góc nhìn Camera
+      ctx.save();
+      ctx.translate(-Math.round(camera.x), -Math.round(camera.y));
 
+      drawMapDecorations(currentMap);
+      currentMap.platforms.forEach(drawPlatform);
+      if (currentMap.hazards) currentMap.hazards.forEach(drawHazard);
+      drawGoal(currentMap.goal);
+      mapStars.forEach((star) => star.draw());
+      particles.forEach((p) => p.draw());
+      diver.draw();
+
+      ctx.restore();
+    } else {
+      // Khi ở màn hình ngoài, vẽ nhân vật bồng bềnh nhẹ
       handleParticles(deltaSec);
+      if (currentState === STATE.START || currentState === STATE.LEVEL_SELECT) {
+        ctx.save();
+        diver.x = canvas.width / 2;
+        diver.y = 130 + Math.sin(frameCount * 0.05) * 8;
+        diver.flipperAngle += 0.1;
+        diver.draw();
+        ctx.restore();
+      } else if (currentMap) {
+        // Tạm dừng: giữ nguyên thế giới tĩnh
+        ctx.save();
+        ctx.translate(-Math.round(camera.x), -Math.round(camera.y));
+        drawMapDecorations(currentMap);
+        currentMap.platforms.forEach(drawPlatform);
+        if (currentMap.hazards) currentMap.hazards.forEach(drawHazard);
+        drawGoal(currentMap.goal);
+        mapStars.forEach((star) => star.draw());
+        particles.forEach((p) => p.draw());
+        diver.draw();
+        ctx.restore();
+      }
     }
-
-    obstacles.forEach((obs) => obs.draw());
-    stars.forEach((star) => star.draw());
-    particles.forEach((p) => p.draw());
-
-    diver.draw();
 
     requestAnimationFrame(gameLoop);
   }
 
-  // === CÁC HÀM ĐIỀU HÀNH TRẠNG THÁI GAME ===
-  function startGame() {
+  // === ĐIỀU HÀNH TRẠNG THÁI MÀN CHƠI & MÀN HÌNH ===
+  function showLevelSelect() {
     sound.init();
-    sound.playStart();
-    score = 0;
-    starsCollected = 0;
-    depthMeters = 0;
-    playTimeMs = 0;
-    lastTimestamp = performance.now();
-    gameSpeed = baseSpeed;
-    obstacleTimer = 0;
-
-    starCountEl.textContent = "0";
-    depthCountEl.textContent = "0.0";
-
-    obstacles = [];
-    stars = [];
-    particles = [];
-
-    diver.reset();
-
     startScreen.classList.remove("active");
     pauseScreen.classList.remove("active");
     gameOverScreen.classList.remove("active");
+    victoryScreen.classList.remove("active");
+
+    renderLevelGrid();
+    levelSelectScreen.classList.add("active");
+    currentState = STATE.LEVEL_SELECT;
+  }
+
+  function renderLevelGrid() {
+    levelGridEl.innerHTML = "";
+    MAPS.forEach((map) => {
+      const isUnlocked = map.id <= unlockedLevel;
+      const bestStars =
+        parseInt(localStorage.getItem(`sea_level_${map.id}_stars`)) || 0;
+      const totalStars = map.stars.length;
+
+      const card = document.createElement("div");
+      card.className = `level-card ${isUnlocked ? "" : "locked"}`;
+
+      card.innerHTML = `
+        <div class="level-card-left">
+          <div class="level-badge">${map.id}</div>
+        </div>
+      `;
+
+      if (isUnlocked) {
+        card.addEventListener("click", () => {
+          levelSelectScreen.classList.remove("active");
+          startLevel(map.id);
+        });
+      }
+
+      levelGridEl.appendChild(card);
+    });
+  }
+
+  function startLevel(levelId) {
+    sound.init();
+    sound.playStart();
+
+    currentLevel = levelId;
+    currentMap = MAPS.find((m) => m.id === levelId) || MAPS[0];
+
+    starsCollected = 0;
+    playTimeMs = 0;
+    lastTimestamp = performance.now();
+    particles = [];
+
+    // Khởi tạo sao trong map
+    mapStars = currentMap.stars.map((s) => new Star(s.x, s.y));
+
+    // Cập nhật HUD
+    levelDisplayEl.textContent = `Level ${currentMap.id}`;
+    starCountEl.textContent = "0";
+    totalLevelStarsEl.textContent = currentMap.stars.length;
+
+    // Đặt vị trí ban đầu của thợ lặn
+    diver.reset(currentMap.playerStart.x, currentMap.playerStart.y);
+
+    // Căn camera ngay vào nhân vật
+    camera.x = Math.max(
+      0,
+      Math.min(currentMap.width - canvas.width, diver.x - canvas.width / 2),
+    );
+    camera.y = Math.max(
+      0,
+      Math.min(currentMap.height - canvas.height, diver.y - canvas.height / 2),
+    );
+
+    startScreen.classList.remove("active");
+    levelSelectScreen.classList.remove("active");
+    pauseScreen.classList.remove("active");
+    gameOverScreen.classList.remove("active");
+    victoryScreen.classList.remove("active");
 
     currentState = STATE.PLAYING;
   }
@@ -1554,7 +2186,7 @@
     currentState = STATE.GAMEOVER;
     sound.playCrash();
 
-    // Tạo hiệu ứng va chạm nổ bọt nước
+    // Hiệu ứng nổ bọt nước
     for (let i = 0; i < 20; i++) {
       particles.push(
         new BubbleParticle(
@@ -1568,45 +2200,86 @@
       );
     }
 
-    // Tính tổng điểm (Điểm sao + Điểm độ sâu)
-    const depthFormatted = depthMeters.toFixed(1);
-    const totalScore = starsCollected * 50 + Math.floor(depthMeters * 20);
+    finalStarsEl.textContent = `${starsCollected}/${currentMap.stars.length}`;
+    finalLevelNameEl.textContent = `level ${currentMap.id}`;
 
-    finalStarsEl.textContent = starsCollected;
-    finalDepthEl.textContent = `${depthFormatted} m`;
-    finalScoreEl.textContent = totalScore;
-
-    // Kiểm tra kỷ lục mới
-    let isNewBest = false;
-    if (starsCollected > highScore) {
-      highScore = starsCollected;
-      localStorage.setItem("sea_high_score", highScore);
-      isNewBest = true;
-    }
-    if (depthMeters > maxDepth) {
-      maxDepth = depthMeters;
-      localStorage.setItem("sea_max_depth", maxDepth.toFixed(1));
-      isNewBest = true;
-    }
-
-    newBestBadge.style.display = isNewBest ? "flex" : "none";
-    startMaxDepthEl.textContent = maxDepth.toFixed(1);
-
-    // Hiển thị màn hình Game Over sau hiệu ứng va chạm
     setTimeout(() => {
       gameOverScreen.classList.add("active");
     }, 400);
   }
 
-  function restartGame() {
-    startGame();
+  function levelWon() {
+    currentState = STATE.VICTORY;
+    sound.playVictory();
+
+    // Nổ pháo hoa hạt lấp lánh ăn mừng
+    for (let i = 0; i < 35; i++) {
+      particles.push(
+        new SparkleParticle(
+          currentMap.goal.x + currentMap.goal.width / 2,
+          currentMap.goal.y + currentMap.goal.height / 2,
+        ),
+      );
+    }
+
+    // Mở khóa level tiếp theo nếu chưa mở
+    if (currentLevel >= unlockedLevel && unlockedLevel < 5) {
+      unlockedLevel = currentLevel + 1;
+      localStorage.setItem("sea_unlocked_level", unlockedLevel);
+      updateStartScreenInfo();
+    }
+
+    // Lưu số sao cao nhất
+    const prevStars =
+      parseInt(localStorage.getItem(`sea_level_${currentLevel}_stars`)) || 0;
+    if (starsCollected > prevStars) {
+      localStorage.setItem(`sea_level_${currentLevel}_stars`, starsCollected);
+    }
+
+    victoryStarsEl.textContent = `${starsCollected}/${currentMap.stars.length}`;
+    victoryTimeEl.textContent = `${Math.floor(playTimeMs / 1000)}s`;
+
+    if (currentLevel >= 5) {
+      btnNextLevel.style.display = "none";
+    } else {
+      btnNextLevel.style.display = "flex";
+    }
+
+    setTimeout(() => {
+      victoryScreen.classList.add("active");
+    }, 500);
+  }
+
+  function goHome() {
+    startScreen.classList.add("active");
+    levelSelectScreen.classList.remove("active");
+    pauseScreen.classList.remove("active");
+    gameOverScreen.classList.remove("active");
+    victoryScreen.classList.remove("active");
+    currentState = STATE.START;
+    updateStartScreenInfo();
   }
 
   // === GẮN SỰ KIỆN NÚT BẤM GIAO DIỆN ===
-  btnPlay.addEventListener("click", startGame);
+  btnPlay.addEventListener("click", showLevelSelect);
+  btnBackFromLevelSelect.addEventListener("click", goHome);
+
   btnResume.addEventListener("click", resumeGame);
-  btnRestartFromPause.addEventListener("click", startGame);
-  btnRestart.addEventListener("click", restartGame);
+  btnRestartFromPause.addEventListener("click", () => startLevel(currentLevel));
+  btnHomeFromPause.addEventListener("click", goHome);
+
+  btnRestart.addEventListener("click", () => startLevel(currentLevel));
+  btnSelectFromOver.addEventListener("click", showLevelSelect);
+  btnHomeFromOver.addEventListener("click", goHome);
+
+  btnNextLevel.addEventListener("click", () => {
+    if (currentLevel < 5) {
+      startLevel(currentLevel + 1);
+    }
+  });
+  btnReplayVictory.addEventListener("click", () => startLevel(currentLevel));
+  btnSelectFromVictory.addEventListener("click", showLevelSelect);
+  btnHomeFromVictory.addEventListener("click", goHome);
 
   btnPause.addEventListener("click", () => {
     if (currentState === STATE.PLAYING) pauseGame();
