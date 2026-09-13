@@ -1,238 +1,268 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    />
     <title>Khám phá Đại Dương - Deep Sea Discover</title>
     <!-- Google Fonts cho phong cách Cartoon -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
-    <link rel="icon" type="image/svg+xml" href="images/favicon.svg">
-    <link rel="alternate icon" href="favicon.svg">
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700;800&family=Nunito:wght@700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" type="image/svg+xml" href="images/favicon.svg" />
+    <link rel="alternate icon" href="favicon.svg" />
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
     <div class="game-wrapper">
-        <!-- Khung Game chính -->
-        <div class="game-container" id="gameContainer">
-            
-            <!-- Canvas vẽ trò chơi -->
-            <canvas id="gameCanvas" width="400" height="600"></canvas>
+      <!-- Khung Game chính -->
+      <div class="game-container" id="gameContainer">
+        <!-- Canvas vẽ trò chơi -->
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
 
-            <!-- Giao diện HUD trên màn hình chơi -->
-            <div class="hud" id="hud">
-                <div class="hud-item level-box">
-                    <span class="hud-icon">🗺️</span>
-                    <span id="levelDisplay">Ải 1</span>
-                </div>
-                <div class="hud-item score-box">
-                    <span class="hud-icon">⭐</span>
-                    <span id="starCount">0</span>/<span id="totalLevelStars">5</span>
-                </div>
-                <div class="hud-controls">
-                    <button id="btnSound" class="hud-btn" title="Bật/Tắt Âm Thanh">🔊</button>
-                    <button id="btnPause" class="hud-btn" title="Tạm Dừng">⏸️</button>
-                </div>
-            </div>
-
-            <!-- Màn hình Bắt Đầu (Start Screen) -->
-            <div class="overlay active" id="startScreen">
-                <div class="modal-card">
-                    <div class="game-logo">
-                        <div class="logo-badge">🌊 THẾ GIỚI BIỂN 🌊</div>
-                        <h1 class="logo-title">KHÁM PHÁ<br><span>ĐẠI DƯƠNG</span></h1>
-                        <div class="diver-avatar">🤿</div>
-                    </div>
-                    
-                    <div class="high-score-preview">
-                        <span>🏆 Tiến độ: <strong id="startProgress">Level 1/5</strong></span>
-                    </div>
-
-                    <p class="game-instructions">
-                        Bơi &amp; nhảy qua các <strong>bệ san hô</strong>, né <strong>bẫy gai</strong> &amp; tìm <strong>Rương kho báu</strong>!
-                    </p>
-
-                    <button id="btnPlay" class="cartoon-btn btn-primary">
-                        <span>BẮT ĐẦU LẶN</span> 🏊
-                    </button>
-
-                    <button id="btnGachaFromStart" class="cartoon-btn btn-gacha">
-                        <span>GACHA SKIN</span> 🎰
-                    </button>
-
-                    <div class="controls-guide">
-                        <span>Dùng WASD hoặc phím Mũi tên ⬆️ ⬅️ ⬇️ ➡️ để bơi</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Màn hình Chọn Level -->
-            <div class="overlay" id="levelSelectScreen">
-                <div class="modal-card level-modal-card">
-                    <div class="modal-header">
-                        <h2 class="modal-title">CHỌN MÀN CHƠI</h2>
-                        <p class="modal-subtitle">Vượt level hiện tại để mở khóa màn tiếp theo!</p>
-                    </div>
-                    
-                    <div class="level-grid" id="levelGrid">
-                        <!-- Sẽ được vẽ bằng JS -->
-                    </div>
-
-                    <button id="btnBackFromLevelSelect" class="cartoon-btn btn-secondary">
-                        <span>QUAY LẠI</span> ↩️
-                    </button>
-                </div>
-            </div>
-
-            <!-- Màn hình Tạm Dừng (Pause Screen) -->
-            <div class="overlay" id="pauseScreen">
-                <div class="modal-card">
-                    <h2 class="modal-title">TẠM DỪNG</h2>
-                    <div class="pause-icon">⏸️</div>
-                    <button id="btnResume" class="cartoon-btn btn-primary">
-                        <span>TIẾP TỤC</span> ▶️
-                    </button>
-                    <button id="btnRestartFromPause" class="cartoon-btn btn-secondary">
-                        <span>CHƠI LẠI</span> 🔄
-                    </button>
-                    <button id="btnHomeFromPause" class="cartoon-btn btn-home">
-                        <span>TRANG CHỦ</span> 🏠
-                    </button>
-                </div>
-            </div>
-
-            <!-- Màn hình Kết Thúc (Game Over Screen) -->
-            <div class="overlay" id="gameOverScreen">
-                <div class="modal-card">
-                    <div class="game-over-header">
-                        <span class="game-over-icon">💥</span>
-                        <h2 class="modal-title game-over-title">VỠ BÌNH DƯỠNG KHÍ!</h2>
-                    </div>
-
-                    <div class="result-stats">
-                        <div class="stat-row highlight">
-                            <span>⭐ Ngôi sao thu thập:</span>
-                            <strong id="finalStars">0</strong>
-                        </div>
-                        <div class="stat-row">
-                            <span>🗺️ Màn chơi:</span>
-                            <strong id="finalLevelName">Ải 1</strong>
-                        </div>
-                    </div>
-
-                    <button id="btnRestart" class="cartoon-btn btn-primary">
-                        <span>THỬ LẠI</span> 🔄
-                    </button>
-                    <button id="btnSelectFromOver" class="cartoon-btn btn-secondary">
-                        <span>CHỌN LEVEL</span> 🗺️
-                    </button>
-                    <button id="btnHomeFromOver" class="cartoon-btn btn-home">
-                        <span>TRANG CHỦ</span> 🏠
-                    </button>
-                    <button id="btnGachaFromOver" class="cartoon-btn btn-gacha">
-                        <span>GACHA SKIN</span> 🎰
-                    </button>
-                </div>
-            </div>
-
-            <!-- Màn hình Hoàn Thành Ải (Victory Screen) -->
-            <div class="overlay" id="victoryScreen">
-                <div class="modal-card victory-card">
-                    <div class="game-over-header">
-                        <span class="victory-icon">🏆</span>
-                        <h2 class="modal-title victory-title">VƯỢT LEVEL THÀNH CÔNG!</h2>
-                    </div>
-
-                    <div class="result-stats">
-                        <div class="stat-row highlight">
-                            <span>⭐ Sao đạt được:</span>
-                            <strong id="victoryStars">0/5</strong>
-                        </div>
-                        <div class="stat-row">
-                            <span>⏱️ Thời gian:</span>
-                            <strong id="victoryTime">0s</strong>
-                        </div>
-                    </div>
-
-                    <button id="btnNextLevel" class="cartoon-btn btn-primary">
-                        <span>LEVEL TIẾP THEO</span> ⏭️
-                    </button>
-                    <button id="btnReplayVictory" class="cartoon-btn btn-secondary">
-                        <span>CHƠI LẠI</span> 🔄
-                    </button>
-                    <button id="btnSelectFromVictory" class="cartoon-btn btn-secondary">
-                        <span>CHỌN LEVEL</span> 🗺️
-                    </button>
-                    <button id="btnHomeFromVictory" class="cartoon-btn btn-home">
-                        <span>TRANG CHỦ</span> 🏠
-                    </button>
-                </div>
-            </div>
-
-            <!-- Cụm nút điều khiển 4 hướng cảm ứng -->
-            <div class="touch-controls" id="touchControls">
-                <div class="touch-group left-group">
-                    <button id="btnLeft" class="control-btn" aria-label="Sang trái">◀</button>
-                    <button id="btnRight" class="control-btn" aria-label="Sang phải">▶</button>
-                </div>
-                <div class="touch-group right-group">
-                    <button id="btnDown" class="control-btn" aria-label="Lặn xuống">▼</button>
-                    <button id="btnUp" class="control-btn btn-jump" aria-label="Bơi lên / Nhảy">▲</button>
-                </div>
-            </div>
-
-            <!-- Màn hình Gacha (Gacha Screen) -->
-            <div class="overlay" id="gachaScreen">
-                <div class="modal-card gacha-card">
-                    <div class="gacha-header">
-                        <h2 class="modal-title">🎰 GACHA BIỂN SÂU</h2>
-                        <div class="gacha-wallet">
-                            <span>⭐</span>
-                            <span id="gachaStarCount">0</span>
-                            <span class="wallet-label">sao</span>
-                        </div>
-                    </div>
-
-                    <!-- Khu vực hiển thị kết quả -->
-                    <div class="gacha-result-area" id="gachaResultArea">
-                        <div class="gacha-idle-art">🌊</div>
-                        <p class="gacha-idle-text">Quay để nhận skin mới!</p>
-                    </div>
-
-                    <!-- Nút quay -->
-                    <div class="gacha-pull-btns">
-                        <button id="btnPull1" class="cartoon-btn btn-pull">
-                            <span>Quay x1 </span>
-                            <span class="pull-cost">⭐10</span>
-                        </button>
-                        <button id="btnPull10" class="cartoon-btn btn-pull btn-pull-10">
-                            <span>Quay x10 </span>
-                            <span class="pull-cost">⭐90</span>
-                        </button>
-                    </div>
-
-                    <!-- Pity counter -->
-                    <div class="pity-info">
-                        <span>🔰 Tỷ lệ Hiếm: <strong id="pityRareCount">0</strong>/20</span>
-                        <span>🔥 Tỷ lệ Sử Thi: <strong id="pityEpicCount">0</strong>/50</span>
-                    </div>
-
-                    <!-- Bộ sưu tập skin -->
-                    <div class="gacha-collection">
-                        <div class="collection-title">📦 Bộ Sưu Tập</div>
-                        <div class="skin-grid" id="skinGrid"></div>
-                    </div>
-
-                    <button id="btnCloseGacha" class="cartoon-btn btn-secondary">
-                        <span>ĐÓNG</span> ✖️
-                    </button>
-                </div>
-            </div>
-
+        <!-- Giao diện HUD trên màn hình chơi -->
+        <div class="hud" id="hud">
+          <div class="hud-item level-box">
+            <span class="hud-icon">🗺️</span>
+            <span id="levelDisplay">Ải 1</span>
+          </div>
+          <div class="hud-item score-box">
+            <span class="hud-icon">⭐</span>
+            <span id="starCount">0</span>/<span id="totalLevelStars">5</span>
+          </div>
+          <div class="hud-controls">
+            <button id="btnSound" class="hud-btn" title="Bật/Tắt Âm Thanh">
+              🔊
+            </button>
+            <button id="btnPause" class="hud-btn" title="Tạm Dừng">⏸️</button>
+          </div>
         </div>
+
+        <!-- Màn hình Bắt Đầu (Start Screen) -->
+        <div class="overlay active" id="startScreen">
+          <div class="modal-card">
+            <div class="game-logo">
+              <div class="logo-badge">🌊 THẾ GIỚI BIỂN 🌊</div>
+              <h1 class="logo-title">KHÁM PHÁ<br /><span>ĐẠI DƯƠNG</span></h1>
+              <div class="diver-avatar">🤿</div>
+            </div>
+
+            <div class="high-score-preview">
+              <span
+                >🏆 Tiến độ: <strong id="startProgress">Level 1/5</strong></span
+              >
+            </div>
+
+            <p class="game-instructions">
+              Bơi &amp; nhảy qua các <strong>bệ san hô</strong>, né
+              <strong>bẫy gai</strong> &amp; tìm <strong>Rương kho báu</strong>!
+            </p>
+
+            <button id="btnPlay" class="cartoon-btn btn-primary">
+              <span>BẮT ĐẦU LẶN</span> 🏊
+            </button>
+
+            <button id="btnGachaFromStart" class="cartoon-btn btn-gacha">
+              <span>GACHA SKIN</span> 🎰
+            </button>
+
+            <div class="controls-guide">
+              <span>Dùng WASD hoặc phím Mũi tên ⬆️ ⬅️ ⬇️ ➡️ để bơi</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Màn hình Chọn Level -->
+        <div class="overlay" id="levelSelectScreen">
+          <div class="modal-card level-modal-card">
+            <div class="modal-header">
+              <h2 class="modal-title">CHỌN MÀN CHƠI</h2>
+              <p class="modal-subtitle">
+                Vượt level hiện tại để mở khóa màn tiếp theo!
+              </p>
+            </div>
+
+            <div class="level-grid" id="levelGrid">
+              <!-- Sẽ được vẽ bằng JS -->
+            </div>
+
+            <button
+              id="btnBackFromLevelSelect"
+              class="cartoon-btn btn-secondary"
+            >
+              <span>QUAY LẠI</span> ↩️
+            </button>
+          </div>
+        </div>
+
+        <!-- Màn hình Tạm Dừng (Pause Screen) -->
+        <div class="overlay" id="pauseScreen">
+          <div class="modal-card">
+            <h2 class="modal-title">TẠM DỪNG</h2>
+            <div class="pause-icon">⏸️</div>
+            <button id="btnResume" class="cartoon-btn btn-primary">
+              <span>TIẾP TỤC</span> ▶️
+            </button>
+            <button id="btnRestartFromPause" class="cartoon-btn btn-secondary">
+              <span>CHƠI LẠI</span> 🔄
+            </button>
+            <button id="btnHomeFromPause" class="cartoon-btn btn-home">
+              <span>TRANG CHỦ</span> 🏠
+            </button>
+          </div>
+        </div>
+
+        <!-- Màn hình Kết Thúc (Game Over Screen) -->
+        <div class="overlay" id="gameOverScreen">
+          <div class="modal-card">
+            <div class="game-over-header">
+              <span class="game-over-icon">💥</span>
+              <h2 class="modal-title game-over-title">VỠ BÌNH DƯỠNG KHÍ!</h2>
+            </div>
+
+            <div class="result-stats">
+              <div class="stat-row highlight">
+                <span>⭐ Ngôi sao thu thập:</span>
+                <strong id="finalStars">0</strong>
+              </div>
+              <div class="stat-row">
+                <span>🗺️ Màn chơi:</span>
+                <strong id="finalLevelName">Ải 1</strong>
+              </div>
+            </div>
+
+            <button id="btnRestart" class="cartoon-btn btn-primary">
+              <span>THỬ LẠI</span> 🔄
+            </button>
+            <button id="btnSelectFromOver" class="cartoon-btn btn-secondary">
+              <span>CHỌN LEVEL</span> 🗺️
+            </button>
+            <button id="btnHomeFromOver" class="cartoon-btn btn-home">
+              <span>TRANG CHỦ</span> 🏠
+            </button>
+            <button id="btnGachaFromOver" class="cartoon-btn btn-gacha">
+              <span>GACHA SKIN</span> 🎰
+            </button>
+          </div>
+        </div>
+
+        <!-- Màn hình Hoàn Thành Ải (Victory Screen) -->
+        <div class="overlay" id="victoryScreen">
+          <div class="modal-card victory-card">
+            <div class="game-over-header">
+              <span class="victory-icon">🏆</span>
+              <h2 class="modal-title victory-title">VƯỢT LEVEL THÀNH CÔNG!</h2>
+            </div>
+
+            <div class="result-stats">
+              <div class="stat-row highlight">
+                <span>⭐ Sao đạt được:</span>
+                <strong id="victoryStars">0/5</strong>
+              </div>
+              <div class="stat-row">
+                <span>⏱️ Thời gian:</span>
+                <strong id="victoryTime">0s</strong>
+              </div>
+            </div>
+
+            <button id="btnNextLevel" class="cartoon-btn btn-primary">
+              <span>LEVEL TIẾP THEO</span> ⏭️
+            </button>
+            <button id="btnReplayVictory" class="cartoon-btn btn-secondary">
+              <span>CHƠI LẠI</span> 🔄
+            </button>
+            <button id="btnSelectFromVictory" class="cartoon-btn btn-secondary">
+              <span>CHỌN LEVEL</span> 🗺️
+            </button>
+            <button id="btnHomeFromVictory" class="cartoon-btn btn-home">
+              <span>TRANG CHỦ</span> 🏠
+            </button>
+          </div>
+        </div>
+
+        <!-- Cụm nút điều khiển 4 hướng cảm ứng -->
+        <div class="touch-controls" id="touchControls">
+          <div class="touch-group left-group">
+            <button id="btnLeft" class="control-btn" aria-label="Sang trái">
+              ◀
+            </button>
+            <button id="btnRight" class="control-btn" aria-label="Sang phải">
+              ▶
+            </button>
+          </div>
+          <div class="touch-group right-group">
+            <button id="btnDown" class="control-btn" aria-label="Lặn xuống">
+              ▼
+            </button>
+            <button
+              id="btnUp"
+              class="control-btn btn-jump"
+              aria-label="Bơi lên / Nhảy"
+            >
+              ▲
+            </button>
+          </div>
+        </div>
+
+        <!-- Màn hình Gacha (Gacha Screen) -->
+        <div class="overlay" id="gachaScreen">
+          <div class="modal-card gacha-card">
+            <div class="gacha-header">
+              <h2 class="modal-title">🎰 GACHA BIỂN SÂU</h2>
+              <div class="gacha-wallet">
+                <span>⭐</span>
+                <span id="gachaStarCount">0</span>
+                <span class="wallet-label">sao</span>
+              </div>
+            </div>
+
+            <!-- Khu vực hiển thị kết quả -->
+            <div class="gacha-result-area" id="gachaResultArea">
+              <div class="gacha-idle-art">🌊</div>
+              <p class="gacha-idle-text">Quay để nhận skin mới!</p>
+            </div>
+
+            <!-- Nút quay -->
+            <div class="gacha-pull-btns">
+              <button id="btnPull1" class="cartoon-btn btn-pull">
+                <span>Quay x1 </span>
+                <span class="pull-cost">⭐10</span>
+              </button>
+              <button id="btnPull10" class="cartoon-btn btn-pull btn-pull-10">
+                <span>Quay x10 </span>
+                <span class="pull-cost">⭐90</span>
+              </button>
+            </div>
+
+            <!-- Pity counter -->
+            <div class="pity-info">
+              <span
+                >🔰 Tỷ lệ Hiếm: <strong id="pityRareCount">0</strong>/20</span
+              >
+              <span
+                >🔥 Tỷ lệ Sử Thi: <strong id="pityEpicCount">0</strong>/50</span
+              >
+            </div>
+
+            <!-- Bộ sưu tập skin -->
+            <div class="gacha-collection">
+              <div class="collection-title">📦 Bộ Sưu Tập</div>
+              <div class="skin-grid" id="skinGrid"></div>
+            </div>
+
+            <button id="btnCloseGacha" class="cartoon-btn btn-secondary">
+              <span>ĐÓNG</span> ✖️
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script src="js/script.js"></script>
-</body>
+  </body>
 </html>
