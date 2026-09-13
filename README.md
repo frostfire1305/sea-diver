@@ -1,3 +1,4 @@
+<!-- TRAU DỒI KIẾN THỨC -->
 # lệnh bash cập nhật game 
 git add .
 git commit -m "Sea Diver"
@@ -16,4 +17,3 @@ git push
 - tìm đến const cost và chỉnh count tùy ý(hiện tại count đang là 1l/10s - 10l/90s)
 - C1: muốn được miễn phí lượt quay thì tìm đến hàm pull(count) rồi cho cost = 0, như vậy thì stars sẽ không bị trừ để có thể thực hiện nhiều lượt quay
 - C2: muốn được miễn phí lượt quay thì tìm đến hàm pull(count) rồi xóa 3 dòng đầu đi, như vậy thì game sẽ cho miễn phí hoàn toàn
- 
