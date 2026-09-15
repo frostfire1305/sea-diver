@@ -317,7 +317,7 @@
       return this.getSkinById(this.equippedSkin);
     }
 
-    // Quay 1 viên
+    // Quay 1 lần
     rollOne() {
       this.pityRare++;
       this.pityEpic++;
